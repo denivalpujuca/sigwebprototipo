@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import { MaterialIcon } from './Icon';
+import { LogoutContext } from '../App';
 
 export const AppHeader: React.FC = () => {
+  const { onLogout } = useContext(LogoutContext);
   const [horaAtual, setHoraAtual] = React.useState(new Date().toLocaleTimeString('pt-BR'));
   const [dataAtual] = React.useState(new Date().toLocaleDateString('pt-BR'));
 
@@ -13,22 +15,9 @@ export const AppHeader: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('loggedIn');
-    localStorage.removeItem('sistema');
-    localStorage.removeItem('activeSection');
-    window.location.reload();
-  };
-
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold">DS</div>
-        <div>
-          <h1 className="text-lg font-bold text-slate-900">Denival Santos</h1>
-          <span className="text-xs text-slate-500">Administrador</span>
-        </div>
-      </div>
+      <div></div>
       <div className="flex items-center gap-4">
         <NavLink 
           to="/documentacao"
@@ -44,7 +33,7 @@ export const AppHeader: React.FC = () => {
           <div className="text-lg font-mono font-bold text-slate-900">{horaAtual}</div>
           <div className="text-xs text-slate-500">{dataAtual}</div>
         </div>
-        <button onClick={handleLogout} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500">
+        <button onClick={onLogout} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500">
           <MaterialIcon name="logout" />
         </button>
       </div>

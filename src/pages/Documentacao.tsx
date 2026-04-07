@@ -1,5 +1,40 @@
 import React, { useState } from 'react';
-import { MaterialIcon } from '../components/Icon';
+import {
+  Info,
+  LayoutGrid,
+  Shield,
+  ShoppingCart,
+  Warehouse,
+  Landmark,
+  Truck,
+  Users,
+  Wrench,
+  FileText,
+  BookOpen,
+  Bell,
+  ChevronRight,
+} from 'lucide-react';
+
+const iconMap: Record<string, React.ElementType> = {
+  info: Info,
+  apps: LayoutGrid,
+  admin_panel_settings: Shield,
+  shopping_bag: ShoppingCart,
+  inventory_2: Warehouse,
+  account_balance: Landmark,
+  local_shipping: Truck,
+  groups: Users,
+  build: Wrench,
+  description: FileText,
+  menu_book: BookOpen,
+  notifications: Bell,
+  chevron_right: ChevronRight,
+};
+
+function getIcon(name: string, className: string = 'w-4 h-4') {
+  const Icon = iconMap[name] || FileText;
+  return <Icon className={className} />;
+}
 
 interface DocumentacaoPageProps {
   activeSection?: string;
@@ -860,7 +895,7 @@ export const DocumentacaoPage: React.FC<DocumentacaoPageProps> = () => {
                       : 'text-[#555f70] hover:bg-[#f3f4f5]'
                   }`}
                 >
-                  <MaterialIcon name={item.icon} />
+                  {getIcon(item.icon)}
                   <span className="text-sm font-medium">{item.title}</span>
                 </button>
               ))}
@@ -875,7 +910,7 @@ export const DocumentacaoPage: React.FC<DocumentacaoPageProps> = () => {
                       : 'text-[#555f70] hover:bg-[#f3f4f5]'
                   }`}
                 >
-                  <MaterialIcon name={child.icon} className="text-lg" />
+                  {getIcon(child.icon, 'w-5 h-5')}
                   <span>{child.title}</span>
                 </button>
               ))}
@@ -912,7 +947,7 @@ export const DocumentacaoPage: React.FC<DocumentacaoPageProps> = () => {
             {currentSectionData ? (
               <>
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <MaterialIcon name={currentModule?.icon || currentMenu?.icon || 'description'} className="text-[#006e2d] text-3xl" />
+                  {getIcon(currentModule?.icon || currentMenu?.icon || 'description', 'w-8 h-8 text-[#006e2d]')}
                   <div>
                     <h2 className="text-xl font-bold text-[#191c1d]">
                       {currentModule?.title || currentMenu?.title}

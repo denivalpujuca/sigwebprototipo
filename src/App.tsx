@@ -1,10 +1,18 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, createContext } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { AppSidebar } from './components/AppSidebar';
 import { AppHeader } from './components/AppHeader';
+import { HomePage } from './pages/Home';
+import { LoginPage } from './pages/Login';
 
-// @ts-ignore - Legacy props compatibility
+export const LogoutContext = createContext<{ onLogout: () => void }>({ onLogout: () => {} });
+
+// @ts-ignore
+const AdministrativoDashboardPage = React.lazy(() => import('./pages/AdministrativoDashboard').then(m => ({ default: (props: any) => React.createElement(m.AdministrativoDashboardPage, props) })));
+// @ts-ignore
 const DashboardPage = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: (props: any) => React.createElement(m.DashboardPage, props) })));
+// @ts-ignore
+const OficinaDashboardPage = React.lazy(() => import('./pages/OficinaDashboard').then(m => ({ default: (props: any) => React.createElement(m.OficinaDashboardPage, props) })));
 // @ts-ignore
 const VehiclesPage = React.lazy(() => import('./pages/Vehicles').then(m => ({ default: (props: any) => React.createElement(m.VehiclesPage, props) })));
 // @ts-ignore
@@ -69,12 +77,61 @@ const DocumentacaoPage = React.lazy(() => import('./pages/Documentacao').then(m 
 const OrdemServicoPage = React.lazy(() => import('./pages/OrdemServico').then(m => ({ default: (props: any) => React.createElement(m.OrdemServicoPage, props) })));
 
 function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+}
+
+function AppRoutes() {
+  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('loggedIn') === 'true';
+  });
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const logged = localStorage.getItem('loggedIn') === 'true';
+      setIsLoggedIn(logged);
+      if (!logged) {
+        navigate('/', { replace: true });
+      }
+    };
+
+    window.addEventListener('storage', checkAuth);
+    const interval = setInterval(checkAuth, 500);
+
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      clearInterval(interval);
+    };
+  }, [navigate]);
+
+  const handleLogin = (sistema: string) => {
+    localStorage.setItem('loggedIn', 'true');
+    localStorage.setItem('sistema', sistema);
+    setIsLoggedIn(true);
+    navigate('/', { replace: true });
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('loggedIn');
+    localStorage.removeItem('sistema');
+    setIsLoggedIn(false);
+    navigate('/', { replace: true });
+  };
+
   const PageContent: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <main className="p-6 overflow-y-auto bg-slate-50 h-full">{children}</main>
   );
 
+  if (!isLoggedIn) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
   return (
-    <BrowserRouter>
+    <LogoutContext.Provider value={{ onLogout: handleLogout }}>
       <div className="flex h-screen w-full overflow-hidden">
         <aside className="w-72 shrink-0 border-0 bg-[#f5f5f5] flex flex-col h-full">
           <AppSidebar />
@@ -82,8 +139,10 @@ function App() {
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
           <AppHeader />
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<PageContent><HomePage /></PageContent>} />
             <Route path="/dashboard" element={<PageContent><DashboardPage /></PageContent>} />
+            <Route path="/administrativo-dashboard" element={<PageContent><AdministrativoDashboardPage /></PageContent>} />
+            <Route path="/oficina-dashboard" element={<PageContent><OficinaDashboardPage /></PageContent>} />
             <Route path="/marcas" element={<PageContent><MarcasPage /></PageContent>} />
             <Route path="/modelos" element={<PageContent><ModelosPage /></PageContent>} />
             <Route path="/veiculos" element={<PageContent><VehiclesPage /></PageContent>} />
@@ -118,7 +177,7 @@ function App() {
           </Routes>
         </div>
       </div>
-    </BrowserRouter>
+    </LogoutContext.Provider>
   );
 }
 

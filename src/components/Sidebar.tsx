@@ -1,6 +1,5 @@
 import * as React from "react"
-import { ChevronRight, Settings } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { ChevronRight } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 interface NavItem {
@@ -402,27 +401,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange
           })}
         </div>
       </nav>
-      
-      <footer className="border-t-0 p-4">
-        <div className="flex items-center justify-between">
-          <button 
-            onClick={() => onSectionChange('sair')}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
-          >
-            <span className="text-xs">Sair</span>
-          </button>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Settings className="h-4 w-4 text-gray-500" />
-          </Button>
-        </div>
-        <div className="flex items-center gap-2 mt-4 px-2 py-1.5">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center text-white text-xs font-bold">A</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-gray-900 truncate">Admin</div>
-            <div className="text-[10px] text-gray-500">admin@sigweb.com</div>
-          </div>
-        </div>
-      </footer>
     </aside>
   )
 }

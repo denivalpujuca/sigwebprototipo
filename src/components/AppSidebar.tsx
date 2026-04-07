@@ -11,16 +11,11 @@ interface NavItem {
 
 const menuItens: NavItem[] = [
   {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: 'dashboard',
-    items: [],
-  },
-  {
     id: 'administrativo',
     label: 'Administrativo',
     icon: 'business',
     items: [
+      { id: 'administrativo-dashboard', label: 'Dashboard', icon: 'dashboard' },
       { id: 'almoxarifados', label: 'Almoxarifados', icon: 'inventory_2' },
       { id: 'auditoria-admin', label: 'Auditoria', icon: 'fact_check' },
       { id: 'clientes', label: 'Clientes', icon: 'groups' },
@@ -144,21 +139,14 @@ export const AppSidebar: React.FC = () => {
     });
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('loggedIn');
-    localStorage.removeItem('sistema');
-    localStorage.removeItem('activeSection');
-    window.location.reload();
-  };
-
   return (
     <aside className="w-72 shrink-0 border-0 bg-[#f5f5f5] flex flex-col h-full">
-      <header className="px-4 py-6">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-emerald-600 to-emerald-400 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg">SW</div>
+      <header className="h-16 border-b border-slate-200 px-4 flex items-center shrink-0">
+        <div className="flex items-center justify-center gap-3 w-full">
+          <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shrink-0">SW</div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold text-gray-700">SigWeb</span>
-            <span className="text-[10px] text-gray-500">Sistema de Gestão</span>
+            <span className="text-sm font-bold text-slate-900">SigWeb</span>
+            <span className="text-[10px] text-slate-500">Sistema de Gestão</span>
           </div>
         </div>
       </header>
@@ -206,25 +194,13 @@ export const AppSidebar: React.FC = () => {
           })}
         </div>
       </nav>
-      
-      <footer className="border-t-0 p-4">
-        <div className="flex items-center justify-between">
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
-          >
-            <MaterialIcon name="logout" className="h-4 w-4" />
-            <span className="text-xs">Sair</span>
-          </button>
-          <button className="p-1.5 hover:bg-gray-100 rounded transition-colors">
-            <MaterialIcon name="settings" className="h-4 w-4 text-gray-500" />
-          </button>
-        </div>
-        <div className="flex items-center gap-2 mt-4 px-2 py-1.5">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center text-white text-xs font-bold">DS</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-gray-900 truncate">Denival Santos</div>
-            <div className="text-[10px] text-gray-500">Administrador</div>
+
+      <footer className="border-t border-slate-200 px-4 py-3 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold shrink-0">DS</div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-bold text-slate-900 truncate">Denival Santos</span>
+            <span className="text-[10px] text-slate-500">Administrador</span>
           </div>
         </div>
       </footer>

@@ -172,7 +172,7 @@ export const VehiclesPage: React.FC<VehiclesPageProps> = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+        <div className="px-6 py-4 flex justify-between bg-slate-50">
           <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedVehicles.length} de {filteredVehicles.length} registros</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
