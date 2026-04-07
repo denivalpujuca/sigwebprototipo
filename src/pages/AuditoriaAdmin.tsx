@@ -1,46 +1,128 @@
-import { useState } from 'react';
-import { MainLayout } from '../components/PageLayout';
+import React, { useState, useMemo } from 'react';
+import { MaterialIcon } from '../components/Icon';
 
-interface AuditoriaAdminProps {
-  activeSection: string;
-  onSectionChange: (section: string) => void;
-  onLogout?: () => void;
+interface Registro {
+  id: number;
+  data: string;
+  usuario: string;
+  acao: string;
+  modulo: string;
+  detalhe: string;
 }
 
-export const AuditoriaAdminPage: React.FC<AuditoriaAdminProps> = ({ activeSection: externalActiveSection, onSectionChange: externalOnSectionChange, onLogout }) => {
-  const [internalActiveSection, setInternalActiveSection] = useState('frota');
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  
-  const activeSection = externalActiveSection || internalActiveSection;
-  const setActiveSection = externalOnSectionChange || setInternalActiveSection;
+const initialRegistros: Registro[] = [
+  { id: 1, data: '2026-04-05 10:30:00', usuario: 'Admin', acao: 'Criação', modulo: 'Sistema', detalhe: 'Novo usuário criado' },
+  { id: 2, data: '2026-04-05 11:15:00', usuario: 'Admin', acao: 'Edição', modulo: 'Configurações', detalhe: 'Atualização de configurações' },
+];
+
+interface AuditoriaAdminProps {
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
+}
+
+export const AuditoriaAdminPage: React.FC<AuditoriaAdminProps> = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const filteredRegistros = useMemo(() => {
+    return initialRegistros.filter(registro => 
+      registro.usuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      registro.detalhe.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm]);
+
+  const paginatedRegistros = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredRegistros.slice(start, start + itemsPerPage);
+  }, [filteredRegistros, currentPage]);
+
+  const totalPages = Math.ceil(filteredRegistros.length / itemsPerPage);
 
   const content = (
     <>
-      <nav className="flex items-center gap-2 text-xs text-[#555f70] mb-2 font-medium tracking-wide">
-        <span className="hover:text-[#006e2d] cursor-pointer">Página Inicial</span>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="hover:text-[#006e2d] cursor-pointer">Administrativo</span>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="text-[#191c1d]">Auditoria</span>
+      <nav className="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium tracking-wide">
+        <span className="hover:text-emerald-600 cursor-pointer">Página Inicial</span>
+        <MaterialIcon name="arrow_right" size={14} />
+        <span className="hover:text-emerald-600 cursor-pointer">Administrativo</span>
+        <MaterialIcon name="arrow_right" size={14} />
+        <span className="text-slate-900">Auditoria</span>
       </nav>
 
       <div className="mb-6">
-        <h1 className="text-[2.75rem] font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Auditoria</h1>
-        <p className="text-[#555f70] text-sm">Registro de atividades do sistema.</p>
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Auditoria</h1>
+        <p className="text-slate-500 text-sm">Registro de atividades do sistema.</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] p-12">
-        <div className="text-center text-[#555f70]">
-          <span className="material-symbols-outlined text-6xl mb-4">fact_check</span>
-          <p className="text-lg">Página de Auditoria (Administrativo) em desenvolvimento</p>
+      <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
+        <div className="flex-1 flex gap-2">
+          <div className="relative flex-1">
+            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <input
+              type="text"
+              placeholder="Pesquisar"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50">
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Data</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Usuário</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Ação</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Módulo</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Detalhe</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {paginatedRegistros.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
+                </tr>
+              ) : (
+                paginatedRegistros.map(registro => (
+                  <tr key={registro.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-4 text-sm text-slate-500 font-mono">{registro.data}</td>
+                    <td className="px-4 py-4 text-sm font-medium text-slate-900">{registro.usuario}</td>
+                    <td className="px-4 py-4 text-center">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold ${registro.acao === 'Criação' ? 'bg-emerald-100 text-emerald-700' : registro.acao === 'Edição' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                        {registro.acao}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{registro.modulo}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500 max-w-xs truncate">{registro.detalhe}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+          <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedRegistros.length} de {filteredRegistros.length} registros</span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+              <MaterialIcon name="arrow_left" size={20} />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button key={page} onClick={() => setCurrentPage(page)} className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded ${currentPage === page ? 'bg-emerald-600 text-white' : 'hover:bg-slate-200'}`}>
+                {page}
+              </button>
+            ))}
+            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+              <MaterialIcon name="arrow_right" size={20} />
+            </button>
+          </div>
         </div>
       </div>
     </>
   );
 
-  return (
-    <MainLayout activeSection={activeSection} onSectionChange={setActiveSection} onLogout={() => setShowLogoutModal(true)} showLogoutModal={showLogoutModal} onConfirmLogout={onLogout || (() => { localStorage.removeItem('loggedIn'); window.location.reload(); })} onCancelLogout={() => setShowLogoutModal(false)}>
-      {content}
-    </MainLayout>
-  );
+  return <>{content}</>;
 };

@@ -1,605 +1,150 @@
-import { useState, useMemo, useEffect } from 'react';
-import { MainLayout } from '../components/PageLayout';
-
-interface Empresa {
-  id: number;
-  nome: string;
-  cnpj: string;
-  status: 'ativa' | 'inativa';
-}
-
-interface Categoria {
-  id: number;
-  nome: string;
-  icone: string;
-  produtosCount: number;
-}
-
-interface Produto {
-  id: number;
-  nome: string;
-  descricao: string;
-  unidade: string;
-  preco: number;
-  imagem: string;
-  categoriaId: number;
-  empresaId: number;
-}
-
-interface ItemCarrinho {
-  produto: Produto;
-  quantidade: number;
-  preco: number;
-}
-
-interface Pedido {
-  id: number;
-  empresa: Empresa;
-  itens: ItemCarrinho[];
-  data: Date;
-  status: 'pendente' | 'aprovado' | 'rejeitado';
-}
-
-interface RequisicaoItem {
-  produto?: { id: number; nome: string; unidade: string };
-  nomeNovo?: string;
-  quantidade: number;
-  unidade: string;
-  justificativa: string;
-  status?: 'pendente' | 'solicitado';
-}
+import React, { useState, useMemo } from 'react';
+import { MaterialIcon } from '../components/Icon';
 
 interface Requisicao {
   id: number;
   setor: string;
   almoxarifado: string;
   data: Date;
-  justificativaGeral: string;
-  itens: RequisicaoItem[];
-  dataPrevista: string;
+  itens: number;
   status: 'pendente' | 'aprovado' | 'rejeitado' | 'comprado';
 }
 
-const empresas: Empresa[] = [
-  { id: 1, nome: 'Gestão Urbana S/A', cnpj: '12.345.678/0001-90', status: 'ativa' },
-  { id: 2, nome: 'Serviços Metropolitanos Ltda', cnpj: '23.456.789/0001-01', status: 'ativa' },
-  { id: 3, nome: 'Ambiental Norte S/A', cnpj: '34.567.890/0001-12', status: 'ativa' },
-  { id: 4, nome: 'Transporte Público Municipal', cnpj: '45.678.901/0001-23', status: 'ativa' },
-  { id: 5, nome: 'Saneamento Básico S/A', cnpj: '56.789.012/0001-34', status: 'inativa' },
+const initialRequisicoes: Requisicao[] = [
+  { id: 1, setor: 'Recursos Humanos', almoxarifado: 'Almoxarifado Central', data: new Date('2026-04-01'), itens: 5, status: 'pendente' },
+  { id: 2, setor: 'Manutenção', almoxarifado: 'Almoxarifado Norte', data: new Date('2026-04-02'), itens: 10, status: 'aprovado' },
+  { id: 3, setor: 'TI', almoxarifado: 'Almoxarifado Sul', data: new Date('2026-04-03'), itens: 3, status: 'comprado' },
 ];
-
-const categorias: Categoria[] = [
-  { id: 1, nome: 'Material de Escritório', icone: 'edit', produtosCount: 12 },
-  { id: 2, nome: 'Produtos de Limpeza', icone: 'cleaning_services', produtosCount: 8 },
-  { id: 3, nome: 'Ferramentas', icone: 'build', produtosCount: 15 },
-  { id: 4, nome: 'EPIs e Segurança', icone: 'health_and_safety', produtosCount: 10 },
-  { id: 5, nome: 'Insumos Médicos', icone: 'medical_services', produtosCount: 6 },
-  { id: 6, nome: 'Peças e Autopeças', icone: 'car_repair', produtosCount: 20 },
-  { id: 7, nome: 'Combustíveis', icone: 'local_gas_station', produtosCount: 4 },
-  { id: 8, nome: 'Papelaria e Impressão', icone: 'print', produtosCount: 9 },
-];
-
-const produtos: Produto[] = [
-  { id: 1, nome: 'Caneta esferográfica azul', descricao: 'Caneta esferográfica 0.7mm azul cx/50', unidade: 'Caixa', preco: 25.90, imagem: 'edit', categoriaId: 1, empresaId: 1 },
-  { id: 2, nome: 'Papel A4', descricao: 'Papel sulfite A4 75g cx/500', unidade: 'Caixa', preco: 42.50, imagem: 'description', categoriaId: 8, empresaId: 1 },
-  { id: 3, nome: 'Clipe aço médio', descricao: 'Clipe de aço n° 2 cx/500', unidade: 'Caixa', preco: 8.90, imagem: 'link', categoriaId: 1, empresaId: 1 },
-  { id: 4, nome: 'Detergente líquido', descricao: 'Detergente líquido 500ml', unidade: 'Unidade', preco: 3.50, imagem: 'water_drop', categoriaId: 2, empresaId: 1 },
-  { id: 5, nome: 'Desinfetante 5L', descricao: 'Desinfetante pino líquido 5L', unidade: 'Galão', preco: 28.90, imagem: 'cleaning_services', categoriaId: 2, empresaId: 2 },
-  { id: 6, nome: 'Luva descartável', descricao: 'Luva descartável latex cx/100', unidade: 'Caixa', preco: 45.00, imagem: 'handyman', categoriaId: 4, empresaId: 2 },
-  { id: 7, nome: 'Capacete segurança', descricao: 'Capacete de segurança branco', unidade: 'Unidade', preco: 35.90, imagem: 'sports_motorsports', categoriaId: 4, empresaId: 3 },
-  { id: 8, nome: 'Chave Philips', descricao: 'Chave Phillips profissional conjunto 6pc', unidade: 'Conjunto', preco: 42.00, imagem: 'build', categoriaId: 3, empresaId: 3 },
-  { id: 9, nome: 'Fita Isolante', descricao: 'Fita isolante 19mmx20m preta', unidade: 'Rolo', preco: 12.90, imagem: 'electric_bolt', categoriaId: 3, empresaId: 3 },
-  { id: 10, nome: 'Álcool gel 70%', descricao: 'Álcool gel antisséptico 1L', unidade: 'Unidade', preco: 18.90, imagem: 'spa', categoriaId: 5, empresaId: 4 },
-  { id: 11, nome: 'Óleo lubrificante', descricao: 'Óleo lubrificante multiuso 500ml', unidade: 'Unidade', preco: 22.50, imagem: 'oil_barrel', categoriaId: 6, empresaId: 4 },
-  { id: 12, nome: 'Filtro de óleo', descricao: 'Filtro de óleo para caminhão', unidade: 'Unidade', preco: 85.00, imagem: 'car_repair', categoriaId: 6, empresaId: 4 },
-];
-
-interface SearchInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-}
-
-function SearchInput({ value, onChange, placeholder }: SearchInputProps) {
-  return (
-    <div className="relative">
-      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#6d7b6c]">search</span>
-      <input
-        type="text"
-        className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm"
-        placeholder={placeholder}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-      />
-      {value && (
-        <button
-          onClick={() => onChange('')}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-[#555f70] hover:text-[#191c1d]"
-        >
-          <span className="material-symbols-outlined text-sm">close</span>
-        </button>
-      )}
-    </div>
-  );
-}
 
 interface SolicitacaoCompraProps {
-  activeSection: string;
-  onSectionChange: (section: string) => void;
-  onLogout?: () => void;
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
 }
 
-export const SolicitacaoCompraPage: React.FC<SolicitacaoCompraProps> = ({ activeSection: externalActiveSection, onSectionChange: externalOnSectionChange, onLogout }) => {
-  const [internalActiveSection, setInternalActiveSection] = useState('frota');
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  
-  const activeSection = externalActiveSection || internalActiveSection;
-  const setActiveSection = externalOnSectionChange || setInternalActiveSection;
+export const SolicitacaoCompraPage: React.FC<SolicitacaoCompraProps> = () => {
+  const [requisicoes, setRequisicoes] = useState<Requisicao[]>(initialRequisicoes);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
-  const [empresaSelecionada, setEmpresaSelecionada] = useState<Empresa | null>(null);
-  const [categoriaSelecionada, setCategoriaSelecionada] = useState<Categoria[]>([]);
-  const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
-  const [mostrarCarrinho, setMostrarCarrinho] = useState(false);
-  const [mostrarCheckout, setMostrarCheckout] = useState(false);
-  const [_pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [quantidades, setQuantidades] = useState<Record<number, number>>({});
-  const [buscaProduto, setBuscaProduto] = useState('');
-  const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
-  const [precos, setPrecos] = useState<Record<string, string>>({});
-  const [itensNoCarrinho, setItensNoCarrinho] = useState<Set<string>>(new Set());
+  const filteredRequisicoes = useMemo(() => {
+    return requisicoes.filter(req => 
+      req.setor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.almoxarifado.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [requisicoes, searchTerm]);
 
-  const requisicoesPendentes = useMemo(() => {
-    return requisicoes.filter(r => r.status === 'pendente');
-  }, [requisicoes]);
+  const paginatedRequisicoes = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredRequisicoes.slice(start, start + itemsPerPage);
+  }, [filteredRequisicoes, currentPage]);
 
-  const produtosDasRequisicoes = useMemo(() => {
-    const items: { id: string; nome: string; quantidade: number; unidade: string; categoriaId?: number; status?: string }[] = [];
-    requisicoesPendentes.forEach(req => {
-      req.itens.forEach((item, idx) => {
-        if (item.status === 'solicitado') return;
-        const nome = item.produto?.nome || item.nomeNovo || 'Produto desconhecido';
-        const id = item.produto?.id ? `produto-${item.produto.id}` : `novo-${req.id}-${idx}`;
-        const matchingProduto = produtos.find(p => p.nome === nome);
-        items.push({
-          id,
-          nome,
-          quantidade: item.quantidade,
-          unidade: item.unidade,
-          categoriaId: matchingProduto?.categoriaId,
-          status: item.status
-        });
-      });
-    });
-    return items;
-  }, [requisicoesPendentes]);
+  const totalPages = Math.ceil(filteredRequisicoes.length / itemsPerPage);
 
-  const categoriasComProduto = useMemo(() => {
-    return categorias.map(cat => ({
-      ...cat,
-      produtosCount: produtosDasRequisicoes.filter(p => p.categoriaId === cat.id).length
-    })).filter(cat => cat.produtosCount > 0);
-  }, [categorias, produtosDasRequisicoes]);
-
-  const produtosDasRequisicoesFiltrados = useMemo(() => {
-    if (categoriaSelecionada.length === 0) return produtosDasRequisicoes;
-    return produtosDasRequisicoes.filter(p => p.categoriaId && categoriaSelecionada.some(c => c.id === p.categoriaId));
-  }, [produtosDasRequisicoes, categoriaSelecionada]);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('requisicoesCompra');
-    if (stored) {
-      setRequisicoes(JSON.parse(stored));
-    }
-  }, []);
-
-  const totalCarrinho = useMemo(() => {
-    return carrinho.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
-  }, [carrinho]);
-
-  const adicionarAoCarrinho = (produto: Produto, qtdOpcional?: number, precoKey?: string) => {
-    const qtd = qtdOpcional || quantidades[produto.id] || 1;
-    const precoCustom = precoKey && precos[precoKey] ? parseFloat(precos[precoKey]) : produto.preco;
-    const existingItem = carrinho.find(item => item.produto.id === produto.id);
-    const itemId = precoKey || `produto-${produto.id}`;
-    
-    if (existingItem) {
-      setCarrinho(prev => prev.map(item => 
-        item.produto.id === produto.id 
-          ? { ...item, quantidade: item.quantidade + qtd, preco: precoCustom }
-          : item
-      ));
-    } else {
-      setCarrinho(prev => [...prev, { produto, quantidade: qtd, preco: precoCustom }]);
-    }
-    
-    setItensNoCarrinho(prev => new Set(prev).add(itemId));
-    setQuantidades(prev => ({ ...prev, [produto.id]: 1 }));
-  };
-
-  const removerDoCarrinho = (produtoId: number) => {
-    setCarrinho(prev => prev.filter(item => item.produto.id !== produtoId));
-  };
-
-  const atualizarQuantidade = (produtoId: number, novaQtd: number) => {
-    if (novaQtd <= 0) {
-      removerDoCarrinho(produtoId);
-    } else {
-      setCarrinho(prev => prev.map(item => 
-        item.produto.id === produtoId 
-          ? { ...item, quantidade: novaQtd }
-          : item
-      ));
-    }
-  };
-
-  const criarPedido = () => {
-    if (!empresaSelecionada) {
-      alert('Selecione uma empresa');
-      return;
-    }
-    if (carrinho.length === 0) {
-      alert('Carrinho vazio');
-      return;
-    }
-    
-    const novoPedido: Pedido = {
-      id: Date.now(),
-      empresa: empresaSelecionada,
-      itens: [...carrinho],
-      data: new Date(),
-      status: 'pendente'
-    };
-    
-    const itensAdicionados = Array.from(itensNoCarrinho);
-    
-    setPedidos(prev => [...prev, novoPedido]);
-    setCarrinho([]);
-    setItensNoCarrinho(new Set());
-    setMostrarCheckout(false);
-    setMostrarCarrinho(false);
-
-    const requisicoesAtualizadas = requisicoes.map(req => {
-      if (req.status === 'pendente') {
-        const novosItens = req.itens.map(item => {
-          const itemId = item.produto?.id ? `produto-${item.produto.id}` : `novo-${req.id}-${req.itens.indexOf(item)}`;
-          if (itensAdicionados.includes(itemId)) {
-            return { ...item, status: 'solicitado' as const };
-          }
-          return item;
-        });
-        return { ...req, itens: novosItens };
+  const handleToggle = (id: number) => {
+    setRequisicoes(prev => prev.map(r => {
+      if (r.id === id) {
+        const statusOrder: Requisicao['status'][] = ['pendente', 'aprovado', 'comprado'];
+        const currentIndex = statusOrder.indexOf(r.status);
+        const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
+        return { ...r, status: nextStatus };
       }
-      return req;
-    });
-    
-    setRequisicoes(requisicoesAtualizadas);
-    localStorage.setItem('requisicoesCompra', JSON.stringify(requisicoesAtualizadas));
-    
-    alert(`Pedido #${novoPedido.id} criado com sucesso!`);
+      return r;
+    }));
   };
 
   const content = (
     <>
-      <nav className="flex items-center gap-2 text-xs text-[#555f70] mb-2 font-medium tracking-wide">
-        <span className="hover:text-[#006e2d] cursor-pointer">Página Inicial</span>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="hover:text-[#006e2d] cursor-pointer">Suprimentos</span>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="text-[#191c1d]">Solicitação de Compra</span>
+      <nav className="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium tracking-wide">
+        <span className="hover:text-emerald-600 cursor-pointer">Página Inicial</span>
+        <MaterialIcon name="arrow_right" size={14} />
+        <span className="hover:text-emerald-600 cursor-pointer">Suprimentos</span>
+        <MaterialIcon name="arrow_right" size={14} />
+        <span className="text-slate-900">Solicitação de Compra</span>
       </nav>
 
       <div className="mb-6">
-        <h1 className="text-[2.75rem] font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Solicitação de Compra</h1>
-        <p className="text-[#555f70] text-sm">Selecione uma empresa, categoria e adicione produtos ao carrinho.</p>
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Solicitação de Compra</h1>
+        <p className="text-slate-500 text-sm">Gerenciamento de solicitações de compra.</p>
       </div>
 
-      <div className="flex gap-6">
-        <div className="w-80 shrink-0 space-y-6">
-          <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] overflow-hidden">
-            <div className="px-4 py-3 bg-[#f3f4f5] border-b border-[#bccbb9]/10">
-              <h3 className="text-sm font-bold text-[#555f70] uppercase tracking-wider">Empresa</h3>
-            </div>
-            <div className="p-4">
-              <select
-                value={empresaSelecionada?.id || ''}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  if (!id) {
-                    setEmpresaSelecionada(null);
-                  } else {
-                    const empresa = empresas.find(emp => emp.id === parseInt(id));
-                    setEmpresaSelecionada(empresa || null);
-                  }
-                }}
-                className="w-full px-4 py-2.5 bg-white border border-[#bccbb9]/20 rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm"
-              >
-                <option value="">Selecione uma empresa...</option>
-                {empresas.filter(e => e.status === 'ativa').map(empresa => (
-                  <option key={empresa.id} value={empresa.id}>{empresa.nome}</option>
-                ))}
-              </select>
-              {empresaSelecionada && (
-                <div className="mt-2 text-xs text-[#555f70]">{empresaSelecionada.cnpj}</div>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] overflow-hidden">
-            <div className="px-4 py-3 bg-[#f3f4f5] border-b border-[#bccbb9]/10">
-              <h3 className="text-sm font-bold text-[#555f70] uppercase tracking-wider">Categorias</h3>
-            </div>
-            <div className="divide-y divide-[#bccbb9]/10 max-h-64 overflow-y-auto">
-              <label
-                className={`w-full px-4 py-3 text-left hover:bg-[#f3f4f5]/50 transition-colors flex items-center justify-between cursor-pointer ${
-                  categoriaSelecionada.length === 0 ? 'bg-[#006e2d]/5 border-l-2 border-[#006e2d]' : ''
-                }`}
-              >
-                <span className="text-sm text-[#191c1d]">Todas</span>
-                <input
-                  type="checkbox"
-                  checked={categoriaSelecionada.length === 0}
-                  onChange={() => setCategoriaSelecionada([])}
-                  className="w-4 h-4 text-[#006e2d]"
-                />
-              </label>
-              {categoriasComProduto.map(categoria => (
-                <label
-                  key={categoria.id}
-                  className={`w-full px-4 py-3 text-left hover:bg-[#f3f4f5]/50 transition-colors flex items-center justify-between cursor-pointer ${
-                    categoriaSelecionada.some(c => c.id === categoria.id) ? 'bg-[#006e2d]/5 border-l-2 border-[#006e2d]' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-lg text-[#555f70]">{categoria.icone}</span>
-                    <span className="text-sm text-[#191c1d]">{categoria.nome}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-[#555f70]">{categoria.produtosCount}</span>
-                    <input
-                      type="checkbox"
-                      checked={categoriaSelecionada.some(c => c.id === categoria.id)}
-                      onChange={() => {
-                        if (categoriaSelecionada.some(c => c.id === categoria.id)) {
-                          setCategoriaSelecionada(prev => prev.filter(c => c.id !== categoria.id));
-                        } else {
-                          setCategoriaSelecionada(prev => [...prev, categoria]);
-                        }
-                      }}
-                      className="w-4 h-4 text-[#006e2d]"
-                    />
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1">
-          <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] overflow-hidden">
-            <div className="px-4 py-3 bg-[#f3f4f5] border-b border-[#bccbb9]/10 flex items-center justify-between gap-4">
-              <h3 className="text-sm font-bold text-[#555f70] uppercase tracking-wider shrink-0">
-                Produtos {empresaSelecionada ? `- ${empresaSelecionada.nome}` : ''}
-              </h3>
-              <div className="flex-1 max-w-xs">
-                <SearchInput
-                  value={buscaProduto}
-                  onChange={setBuscaProduto}
-                  placeholder="Buscar produto..."
-                />
-              </div>
-            </div>
-            <div className="divide-y divide-[#e7e8e9]">
-              {produtosDasRequisicoesFiltrados.length === 0 ? (
-                <div className="py-8 text-center text-[#555f70]">
-                  Nenhuma requisição pendente. Crie uma em "Requisição de Compra".
-                </div>
-              ) : (
-                <>
-                  {produtosDasRequisicoesFiltrados.map(item => {
-                    const matchingProduto = produtos.find(p => p.nome === item.nome);
-                    const precoBase = matchingProduto?.preco || 0;
-                    const jaNoCarrinho = itensNoCarrinho.has(item.id);
-                    
-                    return (
-                      <div key={item.id} className={`flex items-center gap-3 px-4 py-3 transition-colors ${jaNoCarrinho ? 'bg-[#fff3cd] border-l-4 border-[#856404]' : 'bg-[#f8f9fa] hover:bg-[#f3f4f5]'}`}>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-[#191c1d]">{item.nome}</h4>
-                        </div>
-                        <div className="shrink-0 flex items-center gap-1">
-                          <span className="text-xs text-[#555f70]">x{item.quantidade}</span>
-                          <span className="text-xs text-[#555f70]">{item.unidade}</span>
-                        </div>
-                        <div className="shrink-0 flex items-center gap-1">
-                          <span className="text-sm font-bold text-[#191c1d]">R$ </span>
-                          <input
-                            type="text"
-                            value={precos[item.id] !== undefined ? precos[item.id] : precoBase.toFixed(2)}
-                            onChange={(e) => setPrecos(prev => ({ ...prev, [item.id]: e.target.value }))}
-                            className="w-20 px-2 py-1 text-sm border border-[#bccbb9]/30 rounded text-center bg-white text-right"
-                          />
-                        </div>
-                        {jaNoCarrinho ? (
-                          <div className="w-8 h-8 bg-[#856404] text-white rounded-md flex items-center justify-center">
-                            <span className="material-symbols-outlined text-lg">check</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              if (matchingProduto) {
-                                adicionarAoCarrinho(matchingProduto, item.quantidade, item.id);
-                              }
-                            }}
-                            className="w-8 h-8 bg-[#006e2d] text-white rounded-md hover:bg-[#005a26] transition-colors flex items-center justify-center"
-                          >
-                            <span className="material-symbols-outlined text-lg">add</span>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-            </div>
+      <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
+        <div className="flex-1 flex gap-2">
+          <div className="relative flex-1">
+            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <input
+              type="text"
+              placeholder="Pesquisar requisição"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+            />
           </div>
         </div>
       </div>
 
-      <button
-        onClick={() => setMostrarCarrinho(true)}
-        className="fixed bottom-6 right-6 bg-gradient-to-br from-[#006e2d] to-[#44c365] text-white px-6 py-3 rounded-full shadow-lg shadow-[#006e2d]/20 flex items-center gap-2 hover:opacity-90 transition-opacity z-40"
-      >
-        <span className="material-symbols-outlined">shopping_cart</span>
-        <span className="font-bold">{carrinho.length}</span>
-        {carrinho.length > 0 && (
-          <span className="text-xs opacity-80">R$ {totalCarrinho.toFixed(2)}</span>
-        )}
-      </button>
-
-      {mostrarCarrinho && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] w-full max-w-2xl mx-4 overflow-hidden max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#bccbb9]/10">
-              <h2 className="text-lg font-bold text-[#191c1d]">Carrinho de Compras</h2>
-              <button onClick={() => setMostrarCarrinho(false)} className="text-[#555f70] hover:text-[#191c1d] transition-colors">
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-6">
-              {carrinho.length === 0 ? (
-                <div className="text-center py-8 text-[#555f70]">
-                  <span className="material-symbols-outlined text-4xl mb-2">shopping_cart</span>
-                  <p>Carrinho vazio</p>
-                </div>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50">
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">ID</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Setor</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Almoxarifado</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Itens</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Data</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {paginatedRequisicoes.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
+                </tr>
               ) : (
-                <div className="space-y-4">
-                  {carrinho.map(item => (
-                    <div key={item.produto.id} className="flex items-center gap-4 p-3 bg-[#f8f9fa] rounded-lg">
-                      <div className="flex-1">
-                        <h4 className="text-sm font-bold text-[#191c1d]">{item.produto.nome}</h4>
-                        <p className="text-xs text-[#555f70]">R$ {item.preco.toFixed(2)}/{item.produto.unidade}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => atualizarQuantidade(item.produto.id, item.quantidade - 1)}
-                          className="w-6 h-6 rounded-full bg-[#e7e8e9] hover:bg-[#d0d1d2] flex items-center justify-center"
-                        >
-                          <span className="material-symbols-outlined text-sm">remove</span>
-                        </button>
-                        <span className="w-8 text-center font-bold">{item.quantidade}</span>
-                        <button
-                          onClick={() => atualizarQuantidade(item.produto.id, item.quantidade + 1)}
-                          className="w-6 h-6 rounded-full bg-[#e7e8e9] hover:bg-[#d0d1d2] flex items-center justify-center"
-                        >
-                          <span className="material-symbols-outlined text-sm">add</span>
-                        </button>
-                      </div>
-                      <div className="w-20 text-right">
-                        <span className="text-sm font-bold text-[#191c1d]">R$ {(item.produto.preco * item.quantidade).toFixed(2)}</span>
-                      </div>
-                      <button
-                        onClick={() => removerDoCarrinho(item.produto.id)}
-                        className="text-[#ba1a1a] hover:opacity-70"
-                      >
-                        <span className="material-symbols-outlined">delete</span>
+                paginatedRequisicoes.map(req => (
+                  <tr key={req.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-4 text-sm font-bold text-slate-900">#{req.id}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{req.setor}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{req.almoxarifado}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{req.itens} itens</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{req.data.toLocaleDateString('pt-BR')}</td>
+                    <td className="px-4 py-4 text-center">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold capitalize ${req.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : req.status === 'aprovado' ? 'bg-emerald-100 text-emerald-700' : req.status === 'comprado' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                        {req.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <button onClick={() => handleToggle(req.id)} className={`p-1.5 transition-colors ${req.status === 'pendente' ? 'text-slate-500 hover:text-emerald-600' : 'text-emerald-600 hover:opacity-70'}`}>
+                        <MaterialIcon name={req.status === 'pendente' ? 'block' : 'check'} size={20} />
                       </button>
-                    </div>
-                  ))}
-                </div>
+                    </td>
+                  </tr>
+                ))
               )}
-            </div>
-
-            {carrinho.length > 0 && (
-              <div className="px-6 py-4 border-t border-[#bccbb9]/10 bg-[#f8f9fa]">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm text-[#555f70]">Total ({carrinho.reduce((acc, item) => acc + item.quantidade, 0)} itens)</span>
-                  <span className="text-xl font-bold text-[#191c1d]">R$ {totalCarrinho.toFixed(2)}</span>
-                </div>
-                <button
-                  onClick={() => { 
-                    if (!empresaSelecionada) {
-                      alert('Selecione uma empresa primeiro');
-                      return;
-                    }
-                    setMostrarCheckout(true); 
-                  }}
-                  className="w-full bg-gradient-to-br from-[#006e2d] to-[#44c365] px-4 py-2.5 text-white font-bold rounded-md shadow-lg shadow-[#006e2d]/20 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                >
-                  <span className="material-symbols-outlined">receipt_long</span>
-                  Criar Pedido de Compra
-                </button>
-              </div>
-            )}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+          <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedRequisicoes.length} de {filteredRequisicoes.length} registros</span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+              <MaterialIcon name="arrow_left" size={20} />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button key={page} onClick={() => setCurrentPage(page)} className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded ${currentPage === page ? 'bg-emerald-600 text-white' : 'hover:bg-slate-200'}`}>
+                {page}
+              </button>
+            ))}
+            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+              <MaterialIcon name="arrow_right" size={20} />
+            </button>
           </div>
         </div>
-      )}
-
-      {mostrarCheckout && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] w-full max-w-lg mx-4 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#bccbb9]/10">
-              <h2 className="text-lg font-bold text-[#191c1d]">Confirmar Pedido</h2>
-              <button onClick={() => setMostrarCheckout(false)} className="text-[#555f70] hover:text-[#191c1d] transition-colors">
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div className="bg-[#f8f9fa] p-4 rounded-lg">
-                <h4 className="text-sm font-bold text-[#555f70] uppercase mb-2">Empresa</h4>
-                <p className="text-sm font-bold text-[#191c1d]">{empresaSelecionada?.nome}</p>
-                <p className="text-xs text-[#555f70]">{empresaSelecionada?.cnpj}</p>
-              </div>
-              
-              <div>
-                <h4 className="text-sm font-bold text-[#555f70] uppercase mb-2">Itens do Pedido</h4>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {carrinho.map(item => (
-                    <div key={item.produto.id} className="flex justify-between text-sm">
-                      <span className="text-[#191c1d]">{item.quantidade}x {item.produto.nome}</span>
-                      <span className="font-bold text-[#191c1d]">R$ {(item.preco * item.quantidade).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="border-t border-[#bccbb9]/20 pt-4 flex justify-between">
-                <span className="font-bold text-[#191c1d]">Total do Pedido</span>
-                <span className="text-xl font-bold text-[#006e2d]">R$ {totalCarrinho.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 border-t border-[#bccbb9]/10 flex gap-3">
-              <button
-                onClick={() => setMostrarCheckout(false)}
-                className="flex-1 px-4 py-2.5 bg-[#f3f4f5] hover:bg-[#e7e8e9] text-[#191c1d] text-sm font-semibold rounded-md"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={criarPedido}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-br from-[#006e2d] to-[#44c365] text-white font-bold rounded-md shadow-lg shadow-[#006e2d]/20 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-              >
-                <span className="material-symbols-outlined">check</span>
-                Confirmar Pedido
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </>
   );
 
-  return (
-    <MainLayout
-      activeSection={activeSection}
-      onSectionChange={setActiveSection}
-      onLogout={() => setShowLogoutModal(true)}
-      showLogoutModal={showLogoutModal}
-      onConfirmLogout={onLogout || (() => { localStorage.removeItem('loggedIn'); window.location.reload(); })}
-      onCancelLogout={() => setShowLogoutModal(false)}
-    >
-      {content}
-    </MainLayout>
-  );
+  return <>{content}</>;
 };

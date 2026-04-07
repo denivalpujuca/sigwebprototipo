@@ -1,4 +1,5 @@
 import React from 'react';
+import { MaterialIcon } from './Icon';
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
@@ -17,15 +18,14 @@ export const Select: React.FC<SelectProps> = ({ label, className = '', children,
         >
           {children}
         </select>
-        <span 
-          className="material-symbols-outlined absolute right-3 text-[#555f70] pointer-events-none select-none" 
+        <MaterialIcon 
+          name="expand_more"
+          className="absolute right-3 text-[#555f70] pointer-events-none select-none" 
           style={{ 
             top: '50%',
             transform: 'translateY(-50%)'
           }}
-        >
-          expand_more
-        </span>
+        />
       </div>
     </div>
   );

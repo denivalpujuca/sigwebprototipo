@@ -1,180 +1,124 @@
-import { useState, useEffect } from 'react';
-import { VehiclesPage } from './pages/Vehicles';
-import { SolicitacaoCompraPage } from './pages/SolicitacaoCompra';
-import { PedidosCompraPage } from './pages/PedidosCompra';
-import { ProdutosPage } from './pages/Produtos';
-import { TiposUsuarioPage } from './pages/TiposUsuario';
-import { UsuariosPage } from './pages/Usuarios';
-import { PermissoesPage } from './pages/Permissoes';
-import { ClientesPage } from './pages/Clientes';
-import { EmpresasPage } from './pages/Empresas';
-import { ContratosPage } from './pages/Contratos';
-import { ServicosPage } from './pages/Servicos';
-import { CatalogoServicosPage } from './pages/CatalogoServicos';
-import { FuncionariosPage } from './pages/Funcionarios';
-import { CargosPage } from './pages/Cargos';
-import { ResiduosUrbanoPage } from './pages/ResiduosUrbano';
-import { ResiduosMTRPage } from './pages/ResiduosMTR';
-import { PeriodoAnoPage } from './pages/PeriodoAno';
-import { FornecedoresPage } from './pages/Fornecedores';
-import { VendasPage } from './pages/Vendas';
-import { GestaoVendasPage } from './pages/GestaoVendas';
-import { AuditoriaPage } from './pages/Auditoria';
-import { AuditoriaAdminPage } from './pages/AuditoriaAdmin';
-import { ContasPagarPage } from './pages/ContasPagar';
-import { ContasReceberPage } from './pages/ContasReceber';
-import { LoginPage } from './pages/Login';
-import { AbastecimentoPage } from './pages/Abastecimento';
-import { FiscalPage } from './pages/Fiscal';
-import { OficinaDashboardPage } from './pages/OficinaDashboard';
-import { OrdemServicoPage } from './pages/OrdemServico';
-import { MarcasPage } from './pages/Marcas';
-import { ModelosPage } from './pages/Modelos';
-import { DocumentacaoPage } from './pages/Documentacao';
-import { AlmoxarifadosPage } from './pages/Almoxarifados';
-import { RequisicaoCompraProdutosPage } from './pages/RequisicaoCompraProdutos';
-import { RequisicaoDepartamentoPage } from './pages/RequisicaoDepartamento';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AppSidebar } from './components/AppSidebar';
+import { AppHeader } from './components/AppHeader';
+
+// @ts-ignore - Legacy props compatibility
+const DashboardPage = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: (props: any) => React.createElement(m.DashboardPage, props) })));
+// @ts-ignore
+const VehiclesPage = React.lazy(() => import('./pages/Vehicles').then(m => ({ default: (props: any) => React.createElement(m.VehiclesPage, props) })));
+// @ts-ignore
+const ClientesPage = React.lazy(() => import('./pages/Clientes').then(m => ({ default: (props: any) => React.createElement(m.ClientesPage, props) })));
+// @ts-ignore
+const MarcasPage = React.lazy(() => import('./pages/Marcas').then(m => ({ default: (props: any) => React.createElement(m.MarcasPage, props) })));
+// @ts-ignore
+const ModelosPage = React.lazy(() => import('./pages/Modelos').then(m => ({ default: (props: any) => React.createElement(m.ModelosPage, props) })));
+// @ts-ignore
+const FuncionariosPage = React.lazy(() => import('./pages/Funcionarios').then(m => ({ default: (props: any) => React.createElement(m.FuncionariosPage, props) })));
+// @ts-ignore
+const CargosPage = React.lazy(() => import('./pages/Cargos').then(m => ({ default: (props: any) => React.createElement(m.CargosPage, props) })));
+// @ts-ignore
+const EmpresasPage = React.lazy(() => import('./pages/Empresas').then(m => ({ default: (props: any) => React.createElement(m.EmpresasPage, props) })));
+// @ts-ignore
+const ContratosPage = React.lazy(() => import('./pages/Contratos').then(m => ({ default: (props: any) => React.createElement(m.ContratosPage, props) })));
+// @ts-ignore
+const ServicosPage = React.lazy(() => import('./pages/Servicos').then(m => ({ default: (props: any) => React.createElement(m.ServicosPage, props) })));
+// @ts-ignore
+const FornecedoresPage = React.lazy(() => import('./pages/Fornecedores').then(m => ({ default: (props: any) => React.createElement(m.FornecedoresPage, props) })));
+// @ts-ignore
+const ProdutosPage = React.lazy(() => import('./pages/Produtos').then(m => ({ default: (props: any) => React.createElement(m.ProdutosPage, props) })));
+// @ts-ignore
+const UsuariosPage = React.lazy(() => import('./pages/Usuarios').then(m => ({ default: (props: any) => React.createElement(m.UsuariosPage, props) })));
+// @ts-ignore
+const TiposUsuarioPage = React.lazy(() => import('./pages/TiposUsuario').then(m => ({ default: (props: any) => React.createElement(m.TiposUsuarioPage, props) })));
+// @ts-ignore
+const PermissoesPage = React.lazy(() => import('./pages/Permissoes').then(m => ({ default: (props: any) => React.createElement(m.PermissoesPage, props) })));
+// @ts-ignore
+const SolicitacaoCompraPage = React.lazy(() => import('./pages/SolicitacaoCompra').then(m => ({ default: (props: any) => React.createElement(m.SolicitacaoCompraPage, props) })));
+// @ts-ignore
+const PedidosCompraPage = React.lazy(() => import('./pages/PedidosCompra').then(m => ({ default: (props: any) => React.createElement(m.PedidosCompraPage, props) })));
+// @ts-ignore
+const VendasPage = React.lazy(() => import('./pages/Vendas').then(m => ({ default: (props: any) => React.createElement(m.VendasPage, props) })));
+// @ts-ignore
+const GestaoVendasPage = React.lazy(() => import('./pages/GestaoVendas').then(m => ({ default: (props: any) => React.createElement(m.GestaoVendasPage, props) })));
+// @ts-ignore
+const ContasPagarPage = React.lazy(() => import('./pages/ContasPagar').then(m => ({ default: (props: any) => React.createElement(m.ContasPagarPage, props) })));
+// @ts-ignore
+const ContasReceberPage = React.lazy(() => import('./pages/ContasReceber').then(m => ({ default: (props: any) => React.createElement(m.ContasReceberPage, props) })));
+// @ts-ignore
+const AuditoriaPage = React.lazy(() => import('./pages/Auditoria').then(m => ({ default: (props: any) => React.createElement(m.AuditoriaPage, props) })));
+// @ts-ignore
+const AuditoriaAdminPage = React.lazy(() => import('./pages/AuditoriaAdmin').then(m => ({ default: (props: any) => React.createElement(m.AuditoriaAdminPage, props) })));
+// @ts-ignore
+const AlmoxarifadosPage = React.lazy(() => import('./pages/Almoxarifados').then(m => ({ default: (props: any) => React.createElement(m.AlmoxarifadosPage, props) })));
+// @ts-ignore
+const RequisicaoCompraProdutosPage = React.lazy(() => import('./pages/RequisicaoCompraProdutos').then(m => ({ default: (props: any) => React.createElement(m.RequisicaoCompraProdutosPage, props) })));
+// @ts-ignore
+const RequisicaoDepartamentoPage = React.lazy(() => import('./pages/RequisicaoDepartamento').then(m => ({ default: (props: any) => React.createElement(m.RequisicaoDepartamentoPage, props) })));
+// @ts-ignore
+const PeriodoAnoPage = React.lazy(() => import('./pages/PeriodoAno').then(m => ({ default: (props: any) => React.createElement(m.PeriodoAnoPage, props) })));
+// @ts-ignore
+const ResiduosUrbanoPage = React.lazy(() => import('./pages/ResiduosUrbano').then(m => ({ default: (props: any) => React.createElement(m.ResiduosUrbanoPage, props) })));
+// @ts-ignore
+const ResiduosMTRPage = React.lazy(() => import('./pages/ResiduosMTR').then(m => ({ default: (props: any) => React.createElement(m.ResiduosMTRPage, props) })));
+// @ts-ignore
+const CatalogoServicosPage = React.lazy(() => import('./pages/CatalogoServicos').then(m => ({ default: (props: any) => React.createElement(m.CatalogoServicosPage, props) })));
+// @ts-ignore
+const DocumentacaoPage = React.lazy(() => import('./pages/Documentacao').then(m => ({ default: (props: any) => React.createElement(m.DocumentacaoPage, props) })));
+// @ts-ignore
+const OrdemServicoPage = React.lazy(() => import('./pages/OrdemServico').then(m => ({ default: (props: any) => React.createElement(m.OrdemServicoPage, props) })));
 
 function App() {
-  const [sistema, setSistema] = useState<'saas' | 'abastecimento' | 'fiscal'>('saas');
-  const [loggedIn, setLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const storedLoggedIn = localStorage.getItem('loggedIn');
-    if (storedLoggedIn === 'true') {
-      setLoggedIn(true);
-    }
-  }, []);
-
-  const [activeSection, setActiveSection] = useState(() => {
-    const saved = localStorage.getItem('activeSection');
-    return saved || 'periodo-ano';
-  });
-
-  const handleLogin = (sistemaSelecionado: string) => {
-    setSistema(sistemaSelecionado as 'saas' | 'abastecimento' | 'fiscal');
-    localStorage.setItem('sistema', sistemaSelecionado);
-    if (sistemaSelecionado === 'saas') {
-      setLoggedIn(true);
-      localStorage.setItem('loggedIn', 'true');
-      localStorage.setItem('activeSection', 'periodo-ano');
-      setActiveSection('periodo-ano');
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('loggedIn');
-    localStorage.removeItem('sistema');
-    localStorage.removeItem('activeSection');
-    setLoggedIn(false);
-    setSistema('saas');
-    setActiveSection('periodo-ano');
-  };
-
-  const handleSectionChange = (section: string) => {
-    if (section === 'sair') {
-      handleLogout();
-      return;
-    }
-    localStorage.setItem('activeSection', section);
-    setActiveSection(section);
-  };
-
-  // Sistemas isolados (Abastecimento e Fiscal) - não precisam de login
-  if (sistema === 'abastecimento') {
-    return <AbastecimentoPage activeSection="abastecimento" onSectionChange={() => {}} onLogout={handleLogout} />;
-  }
-
-  if (sistema === 'fiscal') {
-    return <FiscalPage activeSection="fiscal" onSectionChange={() => {}} onLogout={handleLogout} />;
-  }
-
-  // Para SaaS, verifica se está logado
-  if (!loggedIn) {
-    return <LoginPage onLogin={handleLogin} />;
-  }
-
-  const renderPage = () => {
-    const pageProps = { activeSection, onSectionChange: handleSectionChange, onLogout: handleLogout };
-    switch (activeSection) {
-      case 'periodo-ano':
-        return <PeriodoAnoPage {...pageProps} />;
-      case 'residuos-urbano':
-        return <ResiduosUrbanoPage {...pageProps} />;
-      case 'residuos-mtr':
-        return <ResiduosMTRPage {...pageProps} />;
-      case 'cargos':
-        return <CargosPage {...pageProps} />;
-      case 'funcionarios':
-        return <FuncionariosPage {...pageProps} />;
-      case 'clientes':
-        return <ClientesPage {...pageProps} />;
-      case 'empresas':
-        return <EmpresasPage {...pageProps} />;
-      case 'almoxarifados':
-        return <AlmoxarifadosPage {...pageProps} />;
-      case 'contratos':
-        return <ContratosPage {...pageProps} />;
-      case 'servicos':
-        return <ServicosPage {...pageProps} />;
-      case 'veiculos':
-        return <VehiclesPage {...pageProps} />;
-      case 'marcas':
-        return <MarcasPage {...pageProps} />;
-      case 'modelos':
-        return <ModelosPage {...pageProps} />;
-      case 'marcas-modelos':
-        return <MarcasPage {...pageProps} />;
-      case 'solicitacao-compra':
-        return <SolicitacaoCompraPage {...pageProps} />;
-      case 'pedidos-compra':
-        return <PedidosCompraPage {...pageProps} />;
-      case 'tipos-usuario':
-        return <TiposUsuarioPage {...pageProps} />;
-      case 'usuarios':
-        return <UsuariosPage {...pageProps} />;
-      case 'permissoes':
-        return <PermissoesPage {...pageProps} />;
-      case 'produtos':
-        return <ProdutosPage {...pageProps} />;
-      case 'catalogo-produtos':
-        return <VendasPage {...pageProps} />;
-      case 'requisicao-compra-produtos':
-        return <RequisicaoCompraProdutosPage {...pageProps} />;
-      case 'requisicao-departamento':
-        return <RequisicaoDepartamentoPage {...pageProps} />;
-      case 'fornecedores':
-        return <FornecedoresPage {...pageProps} />;
-      case 'catalogo-servicos':
-        return <CatalogoServicosPage {...pageProps} />;
-      case 'vendas-relatorio':
-        return <GestaoVendasPage {...pageProps} />;
-      case 'contas-pagar':
-        return <ContasPagarPage {...pageProps} />;
-      case 'contas-receber':
-        return <ContasReceberPage {...pageProps} />;
-      case 'auditoria-admin':
-        return <AuditoriaAdminPage {...pageProps} />;
-      case 'auditoria':
-        return <AuditoriaPage {...pageProps} />;
-      case 'oficina-dashboard':
-        return <OficinaDashboardPage {...pageProps} />;
-      case 'ordem-servico':
-        return <OrdemServicoPage {...pageProps} />;
-      case 'documentacao':
-        return <DocumentacaoPage {...pageProps} />;
-      case 'sair':
-        window.location.reload();
-        return null;
-      default:
-        return <VehiclesPage {...pageProps} />;
-    }
-  };
+  const PageContent: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <main className="p-6 overflow-y-auto bg-slate-50 h-full">{children}</main>
+  );
 
   return (
-    <div className="flex h-screen w-full overflow-hidden">
-      {renderPage()}
-    </div>
+    <BrowserRouter>
+      <div className="flex h-screen w-full overflow-hidden">
+        <aside className="w-72 shrink-0 border-0 bg-[#f5f5f5] flex flex-col h-full">
+          <AppSidebar />
+        </aside>
+        <div className="flex-1 flex flex-col h-screen overflow-hidden">
+          <AppHeader />
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<PageContent><DashboardPage /></PageContent>} />
+            <Route path="/marcas" element={<PageContent><MarcasPage /></PageContent>} />
+            <Route path="/modelos" element={<PageContent><ModelosPage /></PageContent>} />
+            <Route path="/veiculos" element={<PageContent><VehiclesPage /></PageContent>} />
+            <Route path="/clientes" element={<PageContent><ClientesPage /></PageContent>} />
+            <Route path="/empresas" element={<PageContent><EmpresasPage /></PageContent>} />
+            <Route path="/funcionarios" element={<PageContent><FuncionariosPage /></PageContent>} />
+            <Route path="/cargos" element={<PageContent><CargosPage /></PageContent>} />
+            <Route path="/contratos" element={<PageContent><ContratosPage /></PageContent>} />
+            <Route path="/servicos" element={<PageContent><ServicosPage /></PageContent>} />
+            <Route path="/ordem-servico" element={<PageContent><OrdemServicoPage /></PageContent>} />
+            <Route path="/fornecedores" element={<PageContent><FornecedoresPage /></PageContent>} />
+            <Route path="/produtos" element={<PageContent><ProdutosPage /></PageContent>} />
+            <Route path="/usuarios" element={<PageContent><UsuariosPage /></PageContent>} />
+            <Route path="/tipos-usuario" element={<PageContent><TiposUsuarioPage /></PageContent>} />
+            <Route path="/permissoes" element={<PageContent><PermissoesPage /></PageContent>} />
+            <Route path="/solicitacao-compra" element={<PageContent><SolicitacaoCompraPage /></PageContent>} />
+            <Route path="/pedidos-compra" element={<PageContent><PedidosCompraPage /></PageContent>} />
+            <Route path="/catalogo-produtos" element={<PageContent><VendasPage /></PageContent>} />
+            <Route path="/vendas-relatorio" element={<PageContent><GestaoVendasPage /></PageContent>} />
+            <Route path="/contas-pagar" element={<PageContent><ContasPagarPage /></PageContent>} />
+            <Route path="/contas-receber" element={<PageContent><ContasReceberPage /></PageContent>} />
+            <Route path="/auditoria" element={<PageContent><AuditoriaPage /></PageContent>} />
+            <Route path="/auditoria-admin" element={<PageContent><AuditoriaAdminPage /></PageContent>} />
+            <Route path="/almoxarifados" element={<PageContent><AlmoxarifadosPage /></PageContent>} />
+            <Route path="/requisicao-compra-produtos" element={<PageContent><RequisicaoCompraProdutosPage /></PageContent>} />
+            <Route path="/requisicao-departamento" element={<PageContent><RequisicaoDepartamentoPage /></PageContent>} />
+            <Route path="/periodo-ano" element={<PageContent><PeriodoAnoPage /></PageContent>} />
+            <Route path="/residuos-urbano" element={<PageContent><ResiduosUrbanoPage /></PageContent>} />
+            <Route path="/residuos-mtr" element={<PageContent><ResiduosMTRPage /></PageContent>} />
+            <Route path="/catalogo-servicos" element={<PageContent><CatalogoServicosPage /></PageContent>} />
+            <Route path="/documentacao" element={<PageContent><DocumentacaoPage /></PageContent>} />
+          </Routes>
+        </div>
+      </div>
+    </BrowserRouter>
   );
 }
 

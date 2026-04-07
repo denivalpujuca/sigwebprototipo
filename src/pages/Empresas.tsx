@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
-import { MainLayout } from '../components/PageLayout';
+import React, { useState, useMemo } from 'react';
+import { MaterialIcon } from '../components/Icon';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 interface Empresa {
   id: number;
@@ -22,87 +23,26 @@ const initialEmpresas: Empresa[] = [
 ];
 
 interface EmpresasProps {
-  activeSection: string;
-  onSectionChange: (section: string) => void;
-  onLogout?: () => void;
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
 }
 
-export const EmpresasPage: React.FC<EmpresasProps> = ({ activeSection: externalActiveSection, onSectionChange: externalOnSectionChange, onLogout }) => {
-  const [internalActiveSection, setInternalActiveSection] = useState('frota');
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  
-  const activeSection = externalActiveSection || internalActiveSection;
-  const setActiveSection = externalOnSectionChange || setInternalActiveSection;
-
+export const EmpresasPage: React.FC<EmpresasProps> = () => {
   const [empresas, setEmpresas] = useState<Empresa[]>(initialEmpresas);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'ativos' | 'inativos'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmpresa, setEditingEmpresa] = useState<Empresa | null>(null);
   const [formData, setFormData] = useState({ nomeFantasia: '', razaoSocial: '', cnpj: '', email: '', telefone: '', endereco: '', segmento: '' });
   const itemsPerPage = 5;
 
-  const handleSearch = () => {
-    setSearchTerm(searchQuery);
-    setCurrentPage(1);
-  };
-
-  const handlePrint = () => {
-    const content = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Relatório de Empresas</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { color: #191c1d; margin-bottom: 10px; }
-            p { color: #555f70; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; }
-            th { background-color: #f3f4f5; }
-          </style>
-        </head>
-        <body>
-          <h1>Relatório de Empresas</h1>
-          <p>Total de registros: ${filteredEmpresas.length}</p>
-          <table>
-            <thead>
-              <tr>
-                <th>Cod</th><th>Nome Fantasia</th><th>Razão Social</th><th>CNPJ</th><th>Segmento</th><th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filteredEmpresas.map(e => `
-                <tr>
-                  <td>${e.id}</td><td>${e.nomeFantasia}</td><td>${e.razaoSocial}</td><td>${e.cnpj}</td><td>${e.segmento}</td><td>${e.ativo ? 'Ativo' : 'Inativo'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          <script>window.onload = function() { window.print(); window.close(); }</script>
-        </body>
-      </html>
-    `;
-    
-    const printFrame = document.createElement('iframe');
-    printFrame.style.display = 'none';
-    document.body.appendChild(printFrame);
-    printFrame.contentWindow?.document.write(content);
-    printFrame.contentWindow?.document.close();
-  };
-
   const filteredEmpresas = useMemo(() => {
-    return empresas.filter(empresa => {
-      const matchesSearch = 
-        empresa.nomeFantasia.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        empresa.cnpj.includes(searchTerm) ||
-        empresa.segmento.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = filterStatus === 'all' || (filterStatus === 'ativos' && empresa.ativo) || (filterStatus === 'inativos' && !empresa.ativo);
-      return matchesSearch && matchesStatus;
-    });
-  }, [empresas, searchTerm, filterStatus]);
+    return empresas.filter(empresa => 
+      empresa.nomeFantasia.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      empresa.cnpj.includes(searchTerm) ||
+      empresa.segmento.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [empresas, searchTerm]);
 
   const paginatedEmpresas = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -141,107 +81,80 @@ export const EmpresasPage: React.FC<EmpresasProps> = ({ activeSection: externalA
 
   const content = (
     <>
-      <nav className="flex items-center gap-2 text-xs text-[#555f70] mb-2 font-medium tracking-wide">
-        <span className="hover:text-[#006e2d] cursor-pointer">Página Inicial</span>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="hover:text-[#006e2d] cursor-pointer">Administrativo</span>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="text-[#191c1d]">Empresas</span>
+      <nav className="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium tracking-wide">
+        <span className="hover:text-emerald-600 cursor-pointer">Página Inicial</span>
+        <MaterialIcon name="arrow_right" size={14} />
+        <span className="hover:text-emerald-600 cursor-pointer">Administrativo</span>
+        <MaterialIcon name="arrow_right" size={14} />
+        <span className="text-slate-900">Empresas</span>
       </nav>
 
       <div className="mb-6">
-        <h1 className="text-[2.75rem] font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Empresas</h1>
-        <p className="text-[#555f70] text-sm">Cadastro e gerenciamento de empresas parceiras.</p>
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Empresas</h1>
+        <p className="text-slate-500 text-sm">Cadastro e gerenciamento de empresas parceiras.</p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
         <div className="flex-1 flex gap-2">
           <div className="relative flex-1">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#6d7b6c]">search</span>
+            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input
               type="text"
               placeholder="Pesquisar empresa"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
             />
-          </div>
-          <button
-            onClick={handleSearch}
-            className="px-4 py-2.5 bg-[#006e2d] text-white rounded-md hover:bg-[#005a26] flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined">search</span>
-          </button>
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#6d7b6c]">filter_list</span>
-            <select
-              value={filterStatus}
-              onChange={(e) => { setFilterStatus(e.target.value as typeof filterStatus); setCurrentPage(1); }}
-              className="pl-10 pr-8 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm cursor-pointer appearance-none"
-            >
-              <option value="all">Todos</option>
-              <option value="ativos">Ativos</option>
-              <option value="inativos">Inativos</option>
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#6d7b6c] pointer-events-none">expand_more</span>
           </div>
         </div>
         <button
-          onClick={handlePrint}
-          className="px-4 py-2.5 bg-white border border-gray-300 text-[#555f70] rounded-md hover:bg-gray-50 flex items-center gap-2"
-        >
-          <span className="material-symbols-outlined">picture_as_pdf</span>
-          Gerar PDF
-        </button>
-        <button
           onClick={handleAdd}
-          className="bg-gradient-to-br from-[#006e2d] to-[#44c365] px-6 py-2.5 text-white font-bold rounded-md shadow-lg shadow-[#006e2d]/20 flex items-center gap-2 hover:opacity-90 transition-opacity"
+          className="bg-emerald-600 hover:bg-emerald-700 px-6 py-2.5 text-white font-bold rounded-md flex items-center gap-2 transition-colors"
         >
-          <span className="material-symbols-outlined">add</span>
+          <MaterialIcon name="add" size={20} />
           Adicionar
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#f3f4f5]">
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest">Cod</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest">Nome Fantasia</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest">Razão Social</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest">CNPJ</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest">Segmento</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest text-center">Status</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest text-center">Ações</th>
+              <tr className="bg-slate-50">
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nome Fantasia</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Razão Social</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">CNPJ</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Segmento</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-300 border-b border-gray-300">
+            <tbody className="divide-y divide-slate-100">
               {paginatedEmpresas.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-[#555f70]">Nenhum registro encontrado</td>
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
                 </tr>
               ) : (
                 paginatedEmpresas.map(empresa => (
-                  <tr key={empresa.id} className="hover:bg-[#f3f4f5]/50 transition-colors">
-                    <td className="px-4 py-4 text-sm font-semibold text-[#191c1d]">{empresa.id}</td>
-                    <td className="px-4 py-4 text-sm font-bold text-[#191c1d]">{empresa.nomeFantasia}</td>
-                    <td className="px-4 py-4 text-sm text-[#555f70]">{empresa.razaoSocial}</td>
-                    <td className="px-4 py-4 text-sm font-mono text-[#555f70]">{empresa.cnpj}</td>
-                    <td className="px-4 py-4 text-sm text-[#555f70]">{empresa.segmento}</td>
+                  <tr key={empresa.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-4 text-sm font-semibold text-slate-900">{empresa.id}</td>
+                    <td className="px-4 py-4 text-sm font-bold text-slate-900">{empresa.nomeFantasia}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{empresa.razaoSocial}</td>
+                    <td className="px-4 py-4 text-sm font-mono text-slate-500">{empresa.cnpj}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{empresa.segmento}</td>
                     <td className="px-4 py-4 text-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold ${empresa.ativo ? 'bg-[#7ffc97] text-[#002109]' : 'bg-[#ffdad6] text-[#93000a]'}`}>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold ${empresa.ativo ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                         {empresa.ativo ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => handleEdit(empresa)} className="p-1.5 text-[#555f70] hover:text-[#006e2d] transition-colors">
-                          <span className="material-symbols-outlined text-[20px]">edit</span>
+                        <button onClick={() => handleEdit(empresa)} className="p-1.5 text-slate-500 hover:text-emerald-600 transition-colors">
+                          <MaterialIcon name="edit" size={20} />
                         </button>
-                        <button onClick={() => handleToggle(empresa.id)} className={`p-1.5 transition-colors ${empresa.ativo ? 'text-[#555f70] hover:text-[#ba1a1a]' : 'text-[#006e2d] hover:opacity-70'}`}>
-                          <span className="material-symbols-outlined text-[20px]">{empresa.ativo ? 'block' : 'check_circle'}</span>
+                        <button onClick={() => handleToggle(empresa.id)} className={`p-1.5 transition-colors ${empresa.ativo ? 'text-slate-500 hover:text-red-600' : 'text-emerald-600 hover:opacity-70'}`}>
+                          <MaterialIcon name={empresa.ativo ? 'block' : 'check'} size={20} />
                         </button>
                       </div>
                     </td>
@@ -251,79 +164,67 @@ export const EmpresasPage: React.FC<EmpresasProps> = ({ activeSection: externalA
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-[#f3f4f5]/20">
-          <span className="text-xs text-[#555f70] font-medium">Exibindo {paginatedEmpresas.length} de {filteredEmpresas.length} registros</span>
+        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+          <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedEmpresas.length} de {filteredEmpresas.length} registros</span>
           <div className="flex items-center gap-2">
-            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-[#e7e8e9] text-[#555f70]">
-              <span className="material-symbols-outlined text-lg">chevron_left</span>
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+              <MaterialIcon name="arrow_left" size={20} />
             </button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <button key={page} onClick={() => setCurrentPage(page)} className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded ${currentPage === page ? 'bg-[#006e2d] text-white' : 'hover:bg-[#e7e8e9]'}`}>
+              <button key={page} onClick={() => setCurrentPage(page)} className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded ${currentPage === page ? 'bg-emerald-600 text-white' : 'hover:bg-slate-200'}`}>
                 {page}
               </button>
             ))}
-            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className="p-1 rounded hover:bg-[#e7e8e9] text-[#555f70]">
-              <span className="material-symbols-outlined text-lg">chevron_right</span>
+            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+              <MaterialIcon name="arrow_right" size={20} />
             </button>
           </div>
         </div>
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-white/85 backdrop-blur-[20px] rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] w-full max-w-lg mx-4 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#bccbb9]/10">
-              <h2 className="text-lg font-bold text-[#191c1d]">{editingEmpresa ? 'Editar Empresa' : 'Nova Empresa'}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-[#555f70] hover:text-[#191c1d]">
-                <span className="material-symbols-outlined">close</span>
-              </button>
+      <Sheet open={isModalOpen} onOpenChange={(open) => { if (!open) setIsModalOpen(false); }}>
+        <SheetContent className="sm:max-w-[540px]">
+          <SheetHeader>
+            <SheetTitle>{editingEmpresa ? 'Editar Empresa' : 'Nova Empresa'}</SheetTitle>
+          </SheetHeader>
+          <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="mt-6 space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Nome Fantasia</label>
+              <input type="text" value={formData.nomeFantasia} onChange={(e) => setFormData({ ...formData, nomeFantasia: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-[#191c1d] mb-1">Nome Fantasia</label>
-                <input type="text" value={formData.nomeFantasia} onChange={(e) => setFormData({ ...formData, nomeFantasia: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#bccbb9]/20 rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm" required />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[#191c1d] mb-1">Razão Social</label>
-                <input type="text" value={formData.razaoSocial} onChange={(e) => setFormData({ ...formData, razaoSocial: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#bccbb9]/20 rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm" required />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[#191c1d] mb-1">CNPJ</label>
-                <input type="text" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#bccbb9]/20 rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm" required />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[#191c1d] mb-1">Email</label>
-                <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#bccbb9]/20 rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm" required />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[#191c1d] mb-1">Telefone</label>
-                <input type="text" value={formData.telefone} onChange={(e) => setFormData({ ...formData, telefone: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#bccbb9]/20 rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm" required />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[#191c1d] mb-1">Endereço</label>
-                <input type="text" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#bccbb9]/20 rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm" required />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[#191c1d] mb-1">Segmento</label>
-                <input type="text" value={formData.segmento} onChange={(e) => setFormData({ ...formData, segmento: e.target.value })} className="w-full px-4 py-2.5 bg-[#f8f9fa] border border-[#bccbb9]/20 rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm" required />
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2.5 bg-[#f3f4f5] hover:bg-[#e7e8e9] text-[#191c1d] text-sm font-semibold rounded-md">Cancelar</button>
-                <button type="submit" className="px-4 py-2.5 bg-gradient-to-br from-[#006e2d] to-[#44c365] text-white font-bold rounded-md shadow-lg flex items-center gap-2">
-                  <span className="material-symbols-outlined">save</span>
-                  Salvar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Razão Social</label>
+              <input type="text" value={formData.razaoSocial} onChange={(e) => setFormData({ ...formData, razaoSocial: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">CNPJ</label>
+              <input type="text" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+              <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Telefone</label>
+              <input type="text" value={formData.telefone} onChange={(e) => setFormData({ ...formData, telefone: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Endereço</label>
+              <input type="text" value={formData.endereco} onChange={(e) => setFormData({ ...formData, endereco: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Segmento</label>
+              <input type="text" value={formData.segmento} onChange={(e) => setFormData({ ...formData, segmento: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
+            </div>
+            <div className="flex gap-3 pt-4">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md">Cancelar</button>
+              <button type="submit" className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md">Salvar</button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
     </>
   );
 
-  return (
-    <MainLayout activeSection={activeSection} onSectionChange={setActiveSection} onLogout={() => setShowLogoutModal(true)} showLogoutModal={showLogoutModal} onConfirmLogout={onLogout || (() => { localStorage.removeItem('loggedIn'); window.location.reload(); })} onCancelLogout={() => setShowLogoutModal(false)}>
-      {content}
-    </MainLayout>
-  );
+  return <>{content}</>;
 };

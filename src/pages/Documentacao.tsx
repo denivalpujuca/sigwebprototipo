@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { MainLayout } from '../components/PageLayout';
+import { MaterialIcon } from '../components/Icon';
 
 interface DocumentacaoPageProps {
   activeSection?: string;
   onSectionChange?: (section: string) => void;
-  onLogout?: () => void;
 }
 
 interface Section {
@@ -784,15 +783,10 @@ const menuItems: MenuItem[] = [
   }
 ];
 
-export const DocumentacaoPage: React.FC<DocumentacaoPageProps> = ({ activeSection: externalActiveSection, onSectionChange: externalOnSectionChange, onLogout }) => {
-  const [internalActiveSection, setInternalActiveSection] = useState('documentacao');
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+export const DocumentacaoPage: React.FC<DocumentacaoPageProps> = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('introducao');
   const [activeModule, setActiveModule] = useState('clientes');
   const [activeSection, setActiveSection] = useState('intro');
-
-  const activeSectionVal = externalActiveSection || internalActiveSection;
-  const setActiveSectionVal = externalOnSectionChange || setInternalActiveSection;
 
   const currentMenu = menuItems.find(m => m.id === activeMenuItem);
   const modulosItem = menuItems.find(m => m.id === 'modulos');
@@ -840,7 +834,7 @@ export const DocumentacaoPage: React.FC<DocumentacaoPageProps> = ({ activeSectio
     setActiveSection(sectionId);
   };
 
-  const content = (
+  return (
     <>
       <nav className="flex items-center gap-2 text-xs text-[#555f70] mb-2 font-medium tracking-wide">
         <span className="text-[#191c1d]">Documentação</span>
@@ -866,7 +860,7 @@ export const DocumentacaoPage: React.FC<DocumentacaoPageProps> = ({ activeSectio
                       : 'text-[#555f70] hover:bg-[#f3f4f5]'
                   }`}
                 >
-                  <span className="material-symbols-outlined">{item.icon}</span>
+                  <MaterialIcon name={item.icon} />
                   <span className="text-sm font-medium">{item.title}</span>
                 </button>
               ))}
@@ -881,7 +875,7 @@ export const DocumentacaoPage: React.FC<DocumentacaoPageProps> = ({ activeSectio
                       : 'text-[#555f70] hover:bg-[#f3f4f5]'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-lg">{child.icon}</span>
+                  <MaterialIcon name={child.icon} className="text-lg" />
                   <span>{child.title}</span>
                 </button>
               ))}
@@ -918,9 +912,7 @@ export const DocumentacaoPage: React.FC<DocumentacaoPageProps> = ({ activeSectio
             {currentSectionData ? (
               <>
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                  <span className="material-symbols-outlined text-[#006e2d] text-3xl">
-                    {currentModule?.icon || currentMenu?.icon}
-                  </span>
+                  <MaterialIcon name={currentModule?.icon || currentMenu?.icon || 'description'} className="text-[#006e2d] text-3xl" />
                   <div>
                     <h2 className="text-xl font-bold text-[#191c1d]">
                       {currentModule?.title || currentMenu?.title}
@@ -940,18 +932,5 @@ export const DocumentacaoPage: React.FC<DocumentacaoPageProps> = ({ activeSectio
         </div>
       </div>
     </>
-  );
-
-  return (
-    <MainLayout 
-      activeSection={activeSectionVal} 
-      onSectionChange={setActiveSectionVal} 
-      onLogout={() => setShowLogoutModal(true)} 
-      showLogoutModal={showLogoutModal} 
-      onConfirmLogout={onLogout || (() => { localStorage.removeItem('loggedIn'); window.location.reload(); })} 
-      onCancelLogout={() => setShowLogoutModal(false)}
-    >
-      {content}
-    </MainLayout>
   );
 };

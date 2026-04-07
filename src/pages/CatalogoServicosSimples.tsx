@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { MaterialIcon } from '../components/Icon';
 
 interface Servico {
   id: number;
@@ -32,7 +33,6 @@ interface VendaServico {
 }
 
 interface CatalogoServicosSimplesProps {
-  onLogout?: () => void;
 }
 
 const empresas: Empresa[] = [
@@ -58,7 +58,12 @@ const servicos: Servico[] = [
 
 const categorias = [...new Set(servicos.map(s => s.categoria))];
 
-export const CatalogoServicosSimples: React.FC<CatalogoServicosSimplesProps> = ({ onLogout }) => {
+export const CatalogoServicosSimples: React.FC<CatalogoServicosSimplesProps> = () => {
+  const handleLogout = () => {
+    localStorage.removeItem('loggedIn');
+    window.location.reload();
+  };
+
   const [horaAtual, setHoraAtual] = useState(() => new Date().toLocaleTimeString('pt-BR'));
 
   useEffect(() => {
@@ -179,8 +184,8 @@ export const CatalogoServicosSimples: React.FC<CatalogoServicosSimplesProps> = (
             <div className="text-sm font-mono font-bold text-[#1C1C1E]">{horaAtual}</div>
             <div className="text-xs text-[#555f70]">{new Date().toLocaleDateString('pt-BR')}</div>
           </div>
-          <button onClick={onLogout} className="p-2 text-[#8E8E93] hover:bg-gray-100 rounded-lg">
-            <span className="material-symbols-outlined">logout</span>
+          <button onClick={handleLogout} className="p-2 text-[#8E8E93] hover:bg-gray-100 rounded-lg">
+            <MaterialIcon name="logout" />
           </button>
         </div>
       </header>
@@ -345,7 +350,7 @@ export const CatalogoServicosSimples: React.FC<CatalogoServicosSimplesProps> = (
         onClick={() => setMostrarCarrinho(true)}
         className="fixed bottom-6 right-6 bg-gradient-to-br from-[#006e2d] to-[#44c365] text-white px-6 py-3 rounded-full shadow-lg shadow-[#006e2d]/20 flex items-center gap-2 hover:opacity-90 transition-opacity z-40"
       >
-        <span className="material-symbols-outlined">shopping_cart</span>
+        <MaterialIcon name="shopping_cart" />
         <span className="font-bold">{carrinho.length}</span>
         {carrinho.length > 0 && (
           <span className="text-xs opacity-80">R$ {totalCarrinho.toFixed(2)}</span>
@@ -358,7 +363,7 @@ export const CatalogoServicosSimples: React.FC<CatalogoServicosSimplesProps> = (
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h2 className="text-lg font-bold text-[#1C1C1E]">Carrinho de Serviços</h2>
               <button onClick={() => setMostrarCarrinho(false)} className="text-[#8E8E93] hover:text-[#1C1C1E] transition-colors">
-                <span className="material-symbols-outlined">close</span>
+                <MaterialIcon name="close" />
               </button>
             </div>
             
@@ -395,7 +400,7 @@ export const CatalogoServicosSimples: React.FC<CatalogoServicosSimplesProps> = (
                         <span className="text-sm font-bold text-[#1C1C1E]">R$ {(item.preco * item.quantidade).toFixed(2)}</span>
                       </div>
                       <button onClick={() => removerDoCarrinho(item.servico.id)} className="text-[#ba1a1a] hover:opacity-70">
-                        <span className="material-symbols-outlined">delete</span>
+                        <MaterialIcon name="delete" />
                       </button>
                     </div>
                   ))}
@@ -419,7 +424,7 @@ export const CatalogoServicosSimples: React.FC<CatalogoServicosSimplesProps> = (
                   }}
                   className="w-full bg-gradient-to-br from-[#006e2d] to-[#44c365] px-4 py-2.5 text-white font-bold rounded-lg shadow-lg shadow-[#006e2d]/20 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                 >
-                  <span className="material-symbols-outlined">receipt_long</span>
+                  <MaterialIcon name="receipt_long" />
                   Finalizar Venda
                 </button>
               </div>
@@ -434,7 +439,7 @@ export const CatalogoServicosSimples: React.FC<CatalogoServicosSimplesProps> = (
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h2 className="text-lg font-bold text-[#1C1C1E]">Confirmar Venda de Serviços</h2>
               <button onClick={() => setMostrarCheckout(false)} className="text-[#8E8E93] hover:text-[#1C1C1E] transition-colors">
-                <span className="material-symbols-outlined">close</span>
+                <MaterialIcon name="close" />
               </button>
             </div>
             
@@ -474,7 +479,7 @@ export const CatalogoServicosSimples: React.FC<CatalogoServicosSimplesProps> = (
                 onClick={criarVenda}
                 className="flex-1 px-4 py-2.5 bg-gradient-to-br from-[#006e2d] to-[#44c365] text-white font-bold rounded-lg shadow-lg shadow-[#006e2d]/20 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
               >
-                <span className="material-symbols-outlined">check</span>
+                <MaterialIcon name="check" />
                 Confirmar Venda
               </button>
             </div>

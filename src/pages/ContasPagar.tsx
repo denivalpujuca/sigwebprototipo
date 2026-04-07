@@ -1,46 +1,149 @@
-import { useState } from 'react';
-import { MainLayout } from '../components/PageLayout';
+import React, { useState, useMemo } from 'react';
+import { MaterialIcon } from '../components/Icon';
 
-interface ContasPagarProps {
-  activeSection: string;
-  onSectionChange: (section: string) => void;
-  onLogout?: () => void;
+interface Conta {
+  id: number;
+  descricao: string;
+  fornecedor: string;
+  valor: number;
+  dataVencimento: string;
+  status: 'pendente' | 'pago' | 'atrasado';
 }
 
-export const ContasPagarPage: React.FC<ContasPagarProps> = ({ activeSection: externalActiveSection, onSectionChange: externalOnSectionChange, onLogout }) => {
-  const [internalActiveSection, setInternalActiveSection] = useState('frota');
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  
-  const activeSection = externalActiveSection || internalActiveSection;
-  const setActiveSection = externalOnSectionChange || setInternalActiveSection;
+const initialContas: Conta[] = [
+  { id: 1, descricao: 'Serviços deTI', fornecedor: 'Tech Solutions', valor: 5000, dataVencimento: '2026-04-15', status: 'pendente' },
+  { id: 2, descricao: 'Aluguel', fornecedor: 'Imóveis ABC', valor: 10000, dataVencimento: '2026-04-01', status: 'pago' },
+];
+
+interface ContasPagarProps {
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
+}
+
+export const ContasPagarPage: React.FC<ContasPagarProps> = () => {
+  const [contas, setContas] = useState<Conta[]>(initialContas);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const filteredContas = useMemo(() => {
+    return contas.filter(conta => 
+      conta.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conta.fornecedor.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [contas, searchTerm]);
+
+  const paginatedContas = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredContas.slice(start, start + itemsPerPage);
+  }, [filteredContas, currentPage]);
+
+  const totalPages = Math.ceil(filteredContas.length / itemsPerPage);
+
+  const handleToggle = (id: number) => {
+    setContas(prev => prev.map(c => {
+      if (c.id === id) {
+        const statusOrder: Conta['status'][] = ['pendente', 'pago', 'atrasado'];
+        const currentIndex = statusOrder.indexOf(c.status);
+        const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
+        return { ...c, status: nextStatus };
+      }
+      return c;
+    }));
+  };
 
   const content = (
     <>
-      <nav className="flex items-center gap-2 text-xs text-[#555f70] mb-2 font-medium tracking-wide">
-        <span className="hover:text-[#006e2d] cursor-pointer">Página Inicial</span>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="hover:text-[#006e2d] cursor-pointer">Financeiro</span>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="text-[#191c1d]">Contas a Pagar</span>
+      <nav className="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium tracking-wide">
+        <span className="hover:text-emerald-600 cursor-pointer">Página Inicial</span>
+        <MaterialIcon name="arrow_right" size={14} />
+        <span className="hover:text-emerald-600 cursor-pointer">Financeiro</span>
+        <MaterialIcon name="arrow_right" size={14} />
+        <span className="text-slate-900">Contas a Pagar</span>
       </nav>
 
       <div className="mb-6">
-        <h1 className="text-[2.75rem] font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Contas a Pagar</h1>
-        <p className="text-[#555f70] text-sm">Gerenciamento de contas a pagar.</p>
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Contas a Pagar</h1>
+        <p className="text-slate-500 text-sm">Gerenciamento de contas a pagar.</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] p-12">
-        <div className="text-center text-[#555f70]">
-          <span className="material-symbols-outlined text-6xl mb-4">payments</span>
-          <p className="text-lg">Página de Contas a Pagar em desenvolvimento</p>
+      <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
+        <div className="flex-1 flex gap-2">
+          <div className="relative flex-1">
+            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <input
+              type="text"
+              placeholder="Pesquisar conta"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50">
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Descrição</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Fornecedor</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-right">Valor</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Vencimento</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {paginatedContas.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
+                </tr>
+              ) : (
+                paginatedContas.map(conta => (
+                  <tr key={conta.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-4 text-sm font-semibold text-slate-900">{conta.id}</td>
+                    <td className="px-4 py-4 text-sm font-bold text-slate-900">{conta.descricao}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{conta.fornecedor}</td>
+                    <td className="px-4 py-4 text-sm text-right font-medium text-slate-900">R$ {conta.valor.toLocaleString('pt-BR')}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{new Date(conta.dataVencimento).toLocaleDateString('pt-BR')}</td>
+                    <td className="px-4 py-4 text-center">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold capitalize ${conta.status === 'pago' ? 'bg-emerald-100 text-emerald-700' : conta.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                        {conta.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <button onClick={() => handleToggle(conta.id)} className={`p-1.5 transition-colors ${conta.status === 'pendente' ? 'text-slate-500 hover:text-emerald-600' : 'text-emerald-600 hover:opacity-70'}`}>
+                        <MaterialIcon name={conta.status === 'pendente' ? 'block' : 'check'} size={20} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+          <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedContas.length} de {filteredContas.length} registros</span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+              <MaterialIcon name="arrow_left" size={20} />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button key={page} onClick={() => setCurrentPage(page)} className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded ${currentPage === page ? 'bg-emerald-600 text-white' : 'hover:bg-slate-200'}`}>
+                {page}
+              </button>
+            ))}
+            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+              <MaterialIcon name="arrow_right" size={20} />
+            </button>
+          </div>
         </div>
       </div>
     </>
   );
 
-  return (
-    <MainLayout activeSection={activeSection} onSectionChange={setActiveSection} onLogout={() => setShowLogoutModal(true)} showLogoutModal={showLogoutModal} onConfirmLogout={onLogout || (() => { localStorage.removeItem('loggedIn'); window.location.reload(); })} onCancelLogout={() => setShowLogoutModal(false)}>
-      {content}
-    </MainLayout>
-  );
+  return <>{content}</>;
 };

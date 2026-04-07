@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { MaterialIcon } from '../components/Icon';
 
 interface AbastecimentoProps {
   activeSection?: string;
   onSectionChange?: (section: string) => void;
-  onLogout?: () => void;
 }
 
 const dashboardData = {
@@ -56,7 +56,12 @@ const iconColors: Record<string, string> = {
   green: 'bg-green-100 text-green-600'
 };
 
-export const AbastecimentoPage: React.FC<AbastecimentoProps> = ({ onLogout }) => {
+export const AbastecimentoPage: React.FC<AbastecimentoProps> = () => {
+  const handleLogout = () => {
+    localStorage.removeItem('loggedIn');
+    window.location.reload();
+  };
+
   const [horaAtual, setHoraAtual] = useState(() => new Date().toLocaleTimeString('pt-BR'));
 
   useEffect(() => {
@@ -83,8 +88,8 @@ export const AbastecimentoPage: React.FC<AbastecimentoProps> = ({ onLogout }) =>
             <div className="text-sm font-mono font-bold text-[#1C1C1E]">{horaAtual}</div>
             <div className="text-xs text-[#555f70]">{new Date().toLocaleDateString('pt-BR')}</div>
           </div>
-          <button onClick={onLogout} className="p-2 text-[#8E8E93] hover:bg-gray-100 rounded-lg">
-            <span className="material-symbols-outlined">logout</span>
+          <button onClick={handleLogout} className="p-2 text-[#8E8E93] hover:bg-gray-100 rounded-lg">
+            <MaterialIcon name="logout" />
           </button>
         </div>
       </header>
@@ -138,10 +143,10 @@ export const AbastecimentoPage: React.FC<AbastecimentoProps> = ({ onLogout }) =>
         {/* Sair Button */}
         <div className="mt-6 flex justify-end">
           <button
-            onClick={onLogout}
+            onClick={handleLogout}
             className="w-full sm:w-auto h-12 px-6 bg-[#5B5FEF] text-white rounded-lg font-medium hover:bg-[#4a4cd6] transition-colors flex items-center justify-center gap-2"
           >
-            <span className="material-symbols-outlined">logout</span>
+            <MaterialIcon name="logout" />
             Sair
           </button>
         </div>

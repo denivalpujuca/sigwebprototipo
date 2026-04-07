@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Vehicle } from '../mocks/vehicles';
+import { MaterialIcon } from './Icon';
 
 interface VehicleFormProps {
   vehicle?: Vehicle | null;
@@ -58,7 +59,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ vehicle, onSave, onClo
             {vehicle ? 'Editar Veículo' : 'Novo Veículo'}
           </h2>
           <button onClick={onClose} className="text-[#555f70] hover:text-[#191c1d] transition-colors">
-            <span className="material-symbols-outlined">close</span>
+            <MaterialIcon name="close" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -160,7 +161,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ vehicle, onSave, onClo
               type="submit"
               className="px-4 py-2.5 bg-gradient-to-br from-[#006e2d] to-[#44c365] text-white font-bold rounded-md shadow-lg shadow-[#006e2d]/20 flex items-center gap-2 hover:opacity-90 transition-opacity"
             >
-              <span className="material-symbols-outlined">save</span>
+              <MaterialIcon name="save" />
               Salvar
             </button>
           </div>

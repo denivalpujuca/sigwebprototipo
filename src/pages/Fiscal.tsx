@@ -1,9 +1,9 @@
 import { useState } from 'react';
+import { MaterialIcon } from '../components/Icon';
 
 interface FiscalProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
-  onLogout?: () => void;
 }
 
 interface Funcionario {
@@ -25,7 +25,12 @@ const funcionarios: Funcionario[] = [
   { id: 8, nome: 'Roberto Alves', cargo: 'Motorista', status: 'presente' },
 ];
 
-export const FiscalPage: React.FC<FiscalProps> = ({ activeSection: _activeSection, onSectionChange: _onSectionChange, onLogout }) => {
+export const FiscalPage: React.FC<FiscalProps> = ({ activeSection: _activeSection, onSectionChange: _onSectionChange }) => {
+  const handleLogout = () => {
+    localStorage.removeItem('loggedIn');
+    window.location.reload();
+  };
+
   const [dataAtual] = useState(new Date().toLocaleDateString('pt-BR'));
   const [horaAtual, setHoraAtual] = useState(new Date().toLocaleTimeString('pt-BR'));
   const [funcionariosList, setFuncionariosList] = useState(funcionarios);
@@ -77,8 +82,8 @@ export const FiscalPage: React.FC<FiscalProps> = ({ activeSection: _activeSectio
               <div className="text-2xl font-mono font-bold">{horaAtual}</div>
               <div className="text-xs text-slate-400">{dataAtual}</div>
             </div>
-            <button onClick={onLogout} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-              <span className="material-symbols-outlined">logout</span>
+            <button onClick={handleLogout} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+              <MaterialIcon name="logout" />
             </button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { MaterialIcon } from './Icon';
 
 export const Header: React.FC = () => {
   return (
@@ -9,7 +10,7 @@ export const Header: React.FC = () => {
       </nav>
       <div className="flex items-center gap-4">
         <button className="p-2 text-slate-600 hover:bg-slate-200/50 rounded-full transition-colors">
-          <span className="material-symbols-outlined">notifications</span>
+          <MaterialIcon name="notifications" />
         </button>
         <div className="w-px h-6 bg-outline-variant opacity-20"></div>
         <div className="w-8 h-8 rounded-full bg-slate-400 flex items-center justify-center">

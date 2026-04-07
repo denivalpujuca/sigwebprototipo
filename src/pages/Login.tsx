@@ -1,4 +1,8 @@
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MaterialIcon } from '@/components/Icon';
 
 interface LoginProps {
   onLogin: (sistema: string) => void;
@@ -24,85 +28,86 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin }) => {
       case 'saas': return 'SaaS - Gestão de Frotas';
       case 'abastecimento': return 'Abastecimento';
       case 'fiscal': return 'Fiscal - Controle de Chamada';
+      case 'medica': return 'Saúde do Trabalhador - PCMSO';
       default: return sistema;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#2e3132] to-[#1a1d1e] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
           <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#006e2d] to-[#44c365] rounded-lg flex items-center justify-center text-white font-bold text-xl">SW</div>
+            <div className="w-12 h-12 bg-gradient-to-br from-emerald-600 to-emerald-400 rounded-lg flex items-center justify-center text-white font-bold text-xl">SW</div>
             <div className="flex flex-col">
-              <span className="text-2xl font-bold tracking-tight text-[#191c1d]">SigWeb Prototipo</span>
-              <span className="text-[10px] uppercase tracking-widest text-[#555f70]">Sistema de Gestão</span>
+              <span className="text-2xl font-bold tracking-tight text-slate-900">SigWeb Prototipo</span>
+              <span className="text-[10px] uppercase tracking-widest text-slate-500">Sistema de Gestão</span>
             </div>
           </div>
 
-          <h1 className="text-xl font-bold text-[#191c1d] text-center mb-6">Acesso ao Sistema</h1>
+          <h1 className="text-xl font-bold text-slate-900 text-center mb-6">Acesso ao Sistema</h1>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-[#191c1d] mb-2">Usuário</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Usuário</label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#6d7b6c]">person</span>
-                <input
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <MaterialIcon name="person" size={20} />
+                </div>
+                <Input
                   type="text"
                   value={usuario}
                   onChange={(e) => { setUsuario(e.target.value); setError(''); }}
-                  className="w-full pl-10 pr-4 py-3 bg-[#f8f9fa] border border-[#bccbb9]/30 rounded-lg focus:ring-2 focus:ring-[#006e2d] focus:border-transparent text-sm"
+                  className="pl-10"
                   placeholder="Digite seu usuário"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-[#191c1d] mb-2">Senha</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Senha</label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#6d7b6c]">lock</span>
-                <input
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <MaterialIcon name="lock" size={20} />
+                </div>
+                <Input
                   type="password"
                   value={senha}
                   onChange={(e) => { setSenha(e.target.value); setError(''); }}
-                  className="w-full pl-10 pr-4 py-3 bg-[#f8f9fa] border border-[#bccbb9]/30 rounded-lg focus:ring-2 focus:ring-[#006e2d] focus:border-transparent text-sm"
+                  className="pl-10"
                   placeholder="Digite sua senha"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-[#191c1d] mb-2">Sistema</label>
-              <div className="relative">
-                <select
-                  value={sistema}
-                  onChange={(e) => setSistema(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#f8f9fa] border border-[#bccbb9]/30 rounded-lg focus:ring-2 focus:ring-[#006e2d] focus:border-transparent text-sm appearance-none cursor-pointer"
-                >
-                  <option value="saas">{getSistemaLabel('saas')}</option>
-                  <option value="abastecimento">{getSistemaLabel('abastecimento')}</option>
-                  <option value="fiscal">{getSistemaLabel('fiscal')}</option>
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#555f70] pointer-events-none">expand_more</span>
-              </div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Sistema</label>
+              <Select value={sistema} onValueChange={setSistema}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o sistema" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="saas">{getSistemaLabel('saas')}</SelectItem>
+                  <SelectItem value="abastecimento">{getSistemaLabel('abastecimento')}</SelectItem>
+                  <SelectItem value="fiscal">{getSistemaLabel('fiscal')}</SelectItem>
+                  <SelectItem value="medica">{getSistemaLabel('medica')}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {error && (
-              <div className="bg-[#ffdad6] text-[#93000a] px-4 py-3 rounded-lg text-sm font-medium">
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm font-medium border border-red-200">
                 {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-br from-[#006e2d] to-[#44c365] text-white font-bold py-3 rounded-lg shadow-lg hover:opacity-90 transition-opacity"
-            >
+            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700">
               Entrar
-            </button>
+            </Button>
           </form>
 
           <div className="mt-6 text-center">
-            <a href="#" className="text-sm text-[#006e2d] hover:underline">Esqueceu sua senha?</a>
+            <a href="#" className="text-sm text-emerald-600 hover:underline">Esqueceu sua senha?</a>
           </div>
         </div>
 

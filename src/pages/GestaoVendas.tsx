@@ -1,111 +1,43 @@
-import { useState, useMemo } from 'react';
-import { MainLayout } from '../components/PageLayout';
-
-interface VendasProps {
-  activeSection: string;
-  onSectionChange: (section: string) => void;
-  onLogout?: () => void;
-}
-
-interface Servico {
-  id: number;
-  nome: string;
-  descricao: string;
-  categoria: string;
-  valorUnitario: number;
-  unidade: string;
-  ativo: boolean;
-}
-
-interface Empresa {
-  id: number;
-  nome: string;
-  cnpj: string;
-  status: 'ativa' | 'inativa';
-}
-
-interface ItemVenda {
-  servico: Servico;
-  quantidade: number;
-  preco: number;
-}
+import React, { useState, useMemo } from 'react';
+import { MaterialIcon } from '../components/Icon';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 interface Venda {
   id: number;
-  empresa: Empresa;
-  itens: ItemVenda[];
+  empresa: string;
+  cnpj: string;
   data: Date;
+  itens: number;
+  total: number;
   status: 'pendente' | 'aprovado' | 'rejeitado' | 'finalizada';
 }
 
-const empresas: Empresa[] = [
-  { id: 1, nome: 'Gestão Urbana S/A', cnpj: '12.345.678/0001-90', status: 'ativa' },
-  { id: 2, nome: 'Serviços Metropolitanos Ltda', cnpj: '23.456.789/0001-01', status: 'ativa' },
-  { id: 3, nome: 'Ambiental Norte S/A', cnpj: '34.567.890/0001-12', status: 'ativa' },
-  { id: 4, nome: 'Transporte Público Municipal', cnpj: '45.678.901/0001-23', status: 'ativa' },
-  { id: 5, nome: 'Saneamento Básico S/A', cnpj: '56.789.012/0001-34', status: 'inativa' },
+const initialVendas: Venda[] = [
+  { id: 1, empresa: 'Gestão Urbana S/A', cnpj: '12.345.678/0001-90', data: new Date('2026-04-05'), itens: 2, total: 3300, status: 'finalizada' },
+  { id: 2, empresa: 'Serviços Metropolitanos Ltda', cnpj: '23.456.789/0001-01', data: new Date('2026-04-04'), itens: 1, total: 2500, status: 'pendente' },
+  { id: 3, empresa: 'Ambiental Norte S/A', cnpj: '34.567.890/0001-12', data: new Date('2026-04-03'), itens: 2, total: 1000, status: 'aprovado' },
 ];
 
-const gerarVendasMock = (): Venda[] => {
-  return [
-    {
-      id: 1,
-      empresa: empresas[0],
-      data: new Date('2026-04-05'),
-      status: 'finalizada',
-      itens: [
-        { servico: { id: 1, nome: 'Frete', descricao: 'Serviço de transporte', categoria: 'Transporte', valorUnitario: 1500, unidade: 'viagem', ativo: true }, quantidade: 2, preco: 1500 },
-        { servico: { id: 3, nome: 'Manutenção Veicular', descricao: 'Manutenção', categoria: 'Serviços', valorUnitario: 300, unidade: 'serviço', ativo: true }, quantidade: 1, preco: 300 },
-      ]
-    },
-    {
-      id: 2,
-      empresa: empresas[1],
-      data: new Date('2026-04-04'),
-      status: 'pendente',
-      itens: [
-        { servico: { id: 2, nome: 'Locação de Máquina', descricao: 'Locação', categoria: 'Locação', valorUnitario: 500, unidade: 'dia', ativo: true }, quantidade: 5, preco: 500 },
-      ]
-    },
-    {
-      id: 3,
-      empresa: empresas[2],
-      data: new Date('2026-04-03'),
-      status: 'aprovado',
-      itens: [
-        { servico: { id: 4, nome: 'Aluguel de Empilhadeira', descricao: 'Aluguel', categoria: 'Locação', valorUnitario: 200, unidade: 'dia', ativo: true }, quantidade: 3, preco: 200 },
-        { servico: { id: 6, nome: 'Acompanhamento', descricao: 'Acompanhamento', categoria: 'Serviços', valorUnitario: 100, unidade: 'hora', ativo: true }, quantidade: 8, preco: 100 },
-      ]
-    },
-  ];
-};
+interface GestaoVendasProps {
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
+}
 
-const itemsPerPage = 5;
-
-export const GestaoVendasPage: React.FC<VendasProps> = ({ activeSection: externalActiveSection, onSectionChange: externalOnSectionChange, onLogout }) => {
-  const [internalActiveSection, setInternalActiveSection] = useState('vendas');
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  
-  const activeSection = externalActiveSection || internalActiveSection;
-  const setActiveSection = externalOnSectionChange || setInternalActiveSection;
-
-  const [vendas, _setVendas] = useState<Venda[]>(gerarVendasMock);
+export const GestaoVendasPage: React.FC<GestaoVendasProps> = () => {
+  const [vendas, setVendas] = useState<Venda[]>(initialVendas);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pendente' | 'aprovado' | 'rejeitado' | 'finalizada'>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedVenda, setSelectedVenda] = useState<Venda | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingVenda, setEditingVenda] = useState<Venda | null>(null);
+  const [formData, setFormData] = useState<{ empresa: string; cnpj: string; data: string; itens: number; total: number; status: 'pendente' | 'aprovado' | 'rejeitado' | 'finalizada' }>({ empresa: '', cnpj: '', data: '', itens: 1, total: 0, status: 'pendente' });
+  const itemsPerPage = 5;
 
   const filteredVendas = useMemo(() => {
-    return vendas.filter(venda => {
-      const matchesSearch = searchTerm === '' || 
-        venda.empresa.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        venda.id.toString().includes(searchTerm);
-      const matchesStatus = filterStatus === 'all' || venda.status === filterStatus;
-      return matchesSearch && matchesStatus;
-    });
-  }, [vendas, searchTerm, filterStatus]);
+    return vendas.filter(venda => 
+      venda.empresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venda.id.toString().includes(searchTerm)
+    );
+  }, [vendas, searchTerm]);
 
   const paginatedVendas = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -114,156 +46,120 @@ export const GestaoVendasPage: React.FC<VendasProps> = ({ activeSection: externa
 
   const totalPages = Math.ceil(filteredVendas.length / itemsPerPage);
 
-  const handleSearch = () => {
-    setSearchTerm(searchQuery);
-    setCurrentPage(1);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pendente': return 'bg-[#fff3cd] text-[#856404]';
-      case 'aprovado': return 'bg-[#7ffc97] text-[#002109]';
-      case 'rejeitado': return 'bg-[#ffdad6] text-[#93000a]';
-      case 'finalizada': return 'bg-[#006e2d] text-white';
-      default: return 'bg-gray-200 text-gray-700';
+  const handleSave = () => {
+    if (editingVenda) {
+      setVendas(prev => prev.map(v => v.id === editingVenda.id ? { ...formData, id: editingVenda.id, data: new Date(formData.data) } as Venda : v));
+    } else {
+      const newId = Math.max(...vendas.map(v => v.id), 0) + 1;
+      setVendas(prev => [...prev, { ...formData, id: newId, data: new Date(formData.data) } as Venda]);
     }
+    setIsModalOpen(false);
+    setEditingVenda(null);
+    setFormData({ empresa: '', cnpj: '', data: '', itens: 1, total: 0, status: 'pendente' });
   };
 
-  const getTotalVenda = (venda: Venda) => {
-    return venda.itens.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
+  const handleEdit = (venda: Venda) => {
+    setEditingVenda(venda);
+    setFormData({ empresa: venda.empresa, cnpj: venda.cnpj, data: venda.data.toISOString().split('T')[0], itens: venda.itens, total: venda.total, status: venda.status });
+    setIsModalOpen(true);
   };
 
-  const viewDetails = (venda: Venda) => {
-    setSelectedVenda(venda);
-    setShowDetailsModal(true);
+  const handleToggle = (id: number) => {
+    setVendas(prev => prev.map(v => {
+      if (v.id === id) {
+        const statusOrder: Venda['status'][] = ['pendente', 'aprovado', 'finalizada'];
+        const currentIndex = statusOrder.indexOf(v.status);
+        const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
+        return { ...v, status: nextStatus };
+      }
+      return v;
+    }));
+  };
+
+  const handleAdd = () => {
+    setEditingVenda(null);
+    setFormData({ empresa: '', cnpj: '', data: new Date().toISOString().split('T')[0], itens: 1, total: 0, status: 'pendente' });
+    setIsModalOpen(true);
   };
 
   const content = (
     <>
-      <nav className="flex items-center gap-2 text-xs text-[#555f70] mb-2 font-medium tracking-wide">
-        <span className="hover:text-[#006e2d] cursor-pointer">Página Inicial</span>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="hover:text-[#006e2d] cursor-pointer">Vendas</span>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="text-[#191c1d]">Gestão de Vendas</span>
+      <nav className="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium tracking-wide">
+        <span className="hover:text-emerald-600 cursor-pointer">Página Inicial</span>
+        <MaterialIcon name="arrow_right" size={14} />
+        <span className="hover:text-emerald-600 cursor-pointer">Vendas</span>
+        <MaterialIcon name="arrow_right" size={14} />
+        <span className="text-slate-900">Gestão de Vendas</span>
       </nav>
 
       <div className="mb-6">
-        <h1 className="text-[2.75rem] font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Gestão de Vendas</h1>
-        <p className="text-[#555f70] text-sm">Acompanhe e gerencie as vendas de serviços.</p>
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Gestão de Vendas</h1>
+        <p className="text-slate-500 text-sm">Acompanhe e gerencie as vendas de serviços.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-[#006e2d]/10 flex items-center justify-center">
-              <span className="material-symbols-outlined text-2xl text-[#006e2d]">receipt_long</span>
-            </div>
-            <div>
-              <p className="text-xs text-[#555f70] font-medium">Total de Vendas</p>
-              <p className="text-2xl font-bold text-[#191c1d]">{vendas.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-[#fff3cd] flex items-center justify-center">
-              <span className="material-symbols-outlined text-2xl text-[#856404]">schedule</span>
-            </div>
-            <div>
-              <p className="text-xs text-[#555f70] font-medium">Pendentes</p>
-              <p className="text-2xl font-bold text-[#191c1d]">{vendas.filter(v => v.status === 'pendente').length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-[#7ffc97] flex items-center justify-center">
-              <span className="material-symbols-outlined text-2xl text-[#002109]">check_circle</span>
-            </div>
-            <div>
-              <p className="text-xs text-[#555f70] font-medium">Finalizadas</p>
-              <p className="text-2xl font-bold text-[#191c1d]">{vendas.filter(v => v.status === 'finalizada').length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] overflow-hidden">
-        <div className="p-4 border-b border-[#bccbb9]/10 flex flex-wrap gap-3 items-center">
-          <div className="relative flex-1 min-w-[200px]">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#6d7b6c]">search</span>
+      <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
+        <div className="flex-1 flex gap-2">
+          <div className="relative flex-1">
+            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input
               type="text"
-              placeholder="Buscar por ID ou empresa..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#bccbb9]/20 rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm"
+              placeholder="Pesquisar venda"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
             />
           </div>
-          <button
-            onClick={handleSearch}
-            className="px-4 py-2.5 bg-[#006e2d] text-white rounded-md hover:bg-[#005a26] flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined">search</span>
-          </button>
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#6d7b6c]">filter_list</span>
-            <select
-              value={filterStatus}
-              onChange={(e) => { setFilterStatus(e.target.value as typeof filterStatus); setCurrentPage(1); }}
-              className="pl-10 pr-8 py-2.5 bg-white border border-[#bccbb9]/20 rounded-md focus:ring-2 focus:ring-[#006e2d] text-sm cursor-pointer appearance-none"
-            >
-              <option value="all">Todos os Status</option>
-              <option value="pendente">Pendente</option>
-              <option value="aprovado">Aprovado</option>
-              <option value="rejeitado">Rejeitado</option>
-              <option value="finalizada">Finalizada</option>
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#6d7b6c] pointer-events-none">expand_more</span>
-          </div>
         </div>
+        <button
+          onClick={handleAdd}
+          className="bg-emerald-600 hover:bg-emerald-700 px-6 py-2.5 text-white font-bold rounded-md flex items-center gap-2 transition-colors"
+        >
+          <MaterialIcon name="add" size={20} />
+          Adicionar
+        </button>
+      </div>
 
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#f3f4f5]">
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest">ID</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest">Empresa</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest">Itens</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest">Total</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest">Data</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest text-center">Status</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-[#555f70] uppercase tracking-widest text-center">Ações</th>
+              <tr className="bg-slate-50">
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">ID</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Empresa</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Itens</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-right">Total</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Data</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-300 border-b border-gray-300">
+            <tbody className="divide-y divide-slate-100">
               {paginatedVendas.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-[#555f70]">Nenhuma venda encontrada</td>
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
                 </tr>
               ) : (
                 paginatedVendas.map(venda => (
-                  <tr key={venda.id} className="hover:bg-[#f3f4f5]/50 transition-colors">
-                    <td className="px-4 py-4 text-sm font-bold text-[#191c1d]">#{venda.id}</td>
-                    <td className="px-4 py-4 text-sm text-[#555f70]">{venda.empresa.nome}</td>
-                    <td className="px-4 py-4 text-sm text-[#555f70]">{venda.itens.length} itens</td>
-                    <td className="px-4 py-4 text-sm font-bold text-[#191c1d]">R$ {getTotalVenda(venda).toFixed(2)}</td>
-                    <td className="px-4 py-4 text-sm text-[#555f70]">{venda.data.toLocaleDateString('pt-BR')}</td>
+                  <tr key={venda.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-4 text-sm font-bold text-slate-900">#{venda.id}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{venda.empresa}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{venda.itens} itens</td>
+                    <td className="px-4 py-4 text-sm text-right font-medium text-slate-900">R$ {venda.total.toLocaleString('pt-BR')}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{venda.data.toLocaleDateString('pt-BR')}</td>
                     <td className="px-4 py-4 text-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold capitalize ${getStatusColor(venda.status)}`}>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold capitalize ${venda.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : venda.status === 'aprovado' ? 'bg-emerald-100 text-emerald-700' : venda.status === 'finalizada' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
                         {venda.status}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-center">
-                      <button
-                        onClick={() => viewDetails(venda)}
-                        className="p-2 text-[#555f70] hover:text-[#006e2d] hover:bg-[#f3f4f5]/50 rounded-md transition-colors"
-                        title="Ver detalhes"
-                      >
-                        <span className="material-symbols-outlined">visibility</span>
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => handleEdit(venda)} className="p-1.5 text-slate-500 hover:text-emerald-600 transition-colors">
+                          <MaterialIcon name="edit" size={20} />
+                        </button>
+                        <button onClick={() => handleToggle(venda.id)} className={`p-1.5 transition-colors ${venda.status === 'pendente' ? 'text-slate-500 hover:text-emerald-600' : 'text-emerald-600 hover:opacity-70'}`}>
+                          <MaterialIcon name={venda.status === 'pendente' ? 'block' : 'check'} size={20} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -271,86 +167,57 @@ export const GestaoVendasPage: React.FC<VendasProps> = ({ activeSection: externa
             </tbody>
           </table>
         </div>
-
-        <div className="px-6 py-4 flex items-center justify-between bg-[#f3f4f5]/20">
-          <span className="text-xs text-[#555f70] font-medium">Exibindo {paginatedVendas.length} de {filteredVendas.length} registros</span>
+        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+          <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedVendas.length} de {filteredVendas.length} registros</span>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
-              disabled={currentPage === 1}
-              className="p-1 rounded hover:bg-[#e7e8e9] text-[#555f70] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span className="material-symbols-outlined text-lg">chevron_left</span>
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+              <MaterialIcon name="arrow_left" size={20} />
             </button>
-            <span className="text-sm text-[#555f70]">
-              {currentPage} de {totalPages || 1}
-            </span>
-            <button 
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
-              disabled={currentPage >= totalPages}
-              className="p-1 rounded hover:bg-[#e7e8e9] text-[#555f70] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span className="material-symbols-outlined text-lg">chevron_right</span>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button key={page} onClick={() => setCurrentPage(page)} className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded ${currentPage === page ? 'bg-emerald-600 text-white' : 'hover:bg-slate-200'}`}>
+                {page}
+              </button>
+            ))}
+            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+              <MaterialIcon name="arrow_right" size={20} />
             </button>
           </div>
         </div>
       </div>
 
-      {showDetailsModal && selectedVenda && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-[0_20px_40px_rgba(25,28,29,0.06)] w-full max-w-lg mx-4 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#bccbb9]/10">
-              <h2 className="text-lg font-bold text-[#191c1d]">Detalhes da Venda #{selectedVenda.id}</h2>
-              <button onClick={() => setShowDetailsModal(false)} className="text-[#555f70] hover:text-[#191c1d] transition-colors">
-                <span className="material-symbols-outlined">close</span>
-              </button>
+      <Sheet open={isModalOpen} onOpenChange={(open) => { if (!open) setIsModalOpen(false); }}>
+        <SheetContent className="sm:max-w-[540px]">
+          <SheetHeader>
+            <SheetTitle>{editingVenda ? 'Editar Venda' : 'Nova Venda'}</SheetTitle>
+          </SheetHeader>
+          <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="mt-6 space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Empresa</label>
+              <input type="text" value={formData.empresa} onChange={(e) => setFormData({ ...formData, empresa: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
             </div>
-            
-            <div className="p-6 space-y-4">
-              <div className="bg-[#f8f9fa] p-4 rounded-lg">
-                <h4 className="text-sm font-bold text-[#555f70] uppercase mb-2">Empresa</h4>
-                <p className="text-sm font-bold text-[#191c1d]">{selectedVenda.empresa.nome}</p>
-                <p className="text-xs text-[#555f70]">{selectedVenda.empresa.cnpj}</p>
-              </div>
-
-              <div className="bg-[#f8f9fa] p-4 rounded-lg">
-                <h4 className="text-sm font-bold text-[#555f70] uppercase mb-2">Data</h4>
-                <p className="text-sm text-[#191c1d]">{selectedVenda.data.toLocaleDateString('pt-BR')}</p>
-              </div>
-
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">CNPJ</label>
+              <input type="text" value={formData.cnpj} onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <h4 className="text-sm font-bold text-[#555f70] uppercase mb-2">Itens</h4>
-                <div className="space-y-2">
-                  {selectedVenda.itens.map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-sm bg-[#f8f9fa] p-2 rounded">
-                      <span className="text-[#191c1d]">{item.quantidade}x {item.servico.nome}</span>
-                      <span className="font-bold text-[#191c1d]">R$ {(item.preco * item.quantidade).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Data</label>
+                <input type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
               </div>
-              
-              <div className="border-t border-[#bccbb9]/20 pt-4 flex justify-between">
-                <span className="font-bold text-[#191c1d]">Total</span>
-                <span className="text-xl font-bold text-[#006e2d]">R$ {getTotalVenda(selectedVenda).toFixed(2)}</span>
-              </div>
-
-              <div className="bg-[#f8f9fa] p-4 rounded-lg">
-                <h4 className="text-sm font-bold text-[#555f70] uppercase mb-2">Status</h4>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold capitalize ${getStatusColor(selectedVenda.status)}`}>
-                  {selectedVenda.status}
-                </span>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Total</label>
+                <input type="number" value={formData.total} onChange={(e) => setFormData({ ...formData, total: parseFloat(e.target.value) || 0 })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
               </div>
             </div>
-          </div>
-        </div>
-      )}
+            <div className="flex gap-3 pt-4">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md">Cancelar</button>
+              <button type="submit" className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md">Salvar</button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
     </>
   );
 
-  return (
-    <MainLayout activeSection={activeSection} onSectionChange={setActiveSection} onLogout={() => setShowLogoutModal(true)} showLogoutModal={showLogoutModal} onConfirmLogout={onLogout || (() => { localStorage.removeItem('loggedIn'); window.location.reload(); })} onCancelLogout={() => setShowLogoutModal(false)}>
-      {content}
-    </MainLayout>
-  );
+  return <>{content}</>;
 };

@@ -1,9 +1,9 @@
 import { useState } from 'react';
+import { MaterialIcon } from '../components/Icon';
 
 interface MotoristaOptsProps {
   activeSection?: string;
   onSectionChange?: (section: string) => void;
-  onLogout?: () => void;
 }
 
 const dashboardData = {
@@ -63,7 +63,12 @@ const menuItems = [
   { id: 'perfil', label: 'Perfil', icon: 'person' },
 ];
 
-export const MotoristaOptsPage: React.FC<MotoristaOptsProps> = ({ onLogout }) => {
+export const MotoristaOptsPage: React.FC<MotoristaOptsProps> = () => {
+  const handleLogout = () => {
+    localStorage.removeItem('loggedIn');
+    window.location.reload();
+  };
+
   const [activeMenu, setActiveMenu] = useState('tarefas');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -75,13 +80,13 @@ export const MotoristaOptsPage: React.FC<MotoristaOptsProps> = ({ onLogout }) =>
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="p-2 -ml-2 text-[#8E8E93] hover:bg-gray-100 rounded-lg"
         >
-          <span className="material-symbols-outlined">menu</span>
+          <MaterialIcon name="menu" />
         </button>
         
         <h1 className="text-base font-semibold text-[#1C1C1E]">Opções do Motorista</h1>
         
         <button className="p-2 text-[#8E8E93] hover:bg-gray-100 rounded-lg">
-          <span className="material-symbols-outlined">notifications</span>
+          <MaterialIcon name="notifications" />
         </button>
       </header>
 
@@ -109,7 +114,7 @@ export const MotoristaOptsPage: React.FC<MotoristaOptsProps> = ({ onLogout }) =>
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-1 text-[#8E8E93]"
           >
-            <span className="material-symbols-outlined">close</span>
+            <MaterialIcon name="close" />
           </button>
         </div>
         
@@ -128,7 +133,7 @@ export const MotoristaOptsPage: React.FC<MotoristaOptsProps> = ({ onLogout }) =>
                       : 'text-[#8E8E93] hover:bg-gray-50'
                   }`}
                 >
-                  <span className="material-symbols-outlined">{item.icon}</span>
+                  <MaterialIcon name={item.icon} />
                   <span className="text-sm font-medium">{item.label}</span>
                 </button>
               </li>
@@ -145,7 +150,7 @@ export const MotoristaOptsPage: React.FC<MotoristaOptsProps> = ({ onLogout }) =>
           
           <div className="flex items-center gap-4">
             <button className="p-2 text-[#8E8E93] hover:bg-gray-100 rounded-lg transition-colors">
-              <span className="material-symbols-outlined">notifications</span>
+              <MaterialIcon name="notifications" />
             </button>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-[#5B5FEF] text-white flex items-center justify-center text-sm font-medium">
@@ -207,10 +212,10 @@ export const MotoristaOptsPage: React.FC<MotoristaOptsProps> = ({ onLogout }) =>
           {/* Sair Button */}
           <div className="mt-6 lg:mt-8 flex justify-end">
             <button
-              onClick={onLogout}
+              onClick={handleLogout}
               className="w-full sm:w-auto h-12 lg:h-12 px-6 bg-[#5B5FEF] text-white rounded-lg font-medium hover:bg-[#4a4cd6] transition-colors flex items-center justify-center gap-2"
             >
-              <span className="material-symbols-outlined">logout</span>
+              <MaterialIcon name="logout" />
               Sair
             </button>
           </div>
