@@ -236,7 +236,6 @@ export const PeriodoAnoPage: React.FC<PeriodoAnoProps> = () => {
                   </SelectContent>
                 </Select>
               </div>
-              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

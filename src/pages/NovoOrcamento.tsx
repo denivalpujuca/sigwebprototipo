@@ -3,7 +3,6 @@ import {
   Search,
   ChevronRight,
   Star,
-  Clock,
   Shield,
   Wrench,
   Truck,
