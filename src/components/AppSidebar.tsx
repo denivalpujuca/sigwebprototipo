@@ -109,7 +109,7 @@ const menuItens: NavItem[] = [
     icon: 'trending_up',
     items: [
       { id: 'catalogo-servicos', label: 'Catálogo de Serviços', icon: 'build' },
-      { id: 'vendas-relatorio', label: 'Gestão de Vendas', icon: 'trending_up' },
+      { id: 'vendas-relatorio', label: 'Gestão de Orçamentos', icon: 'trending_up' },
     ],
   },
 ];

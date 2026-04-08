@@ -7,6 +7,28 @@ import { LoginPage } from './pages/Login';
 
 export const LogoutContext = createContext<{ onLogout: () => void }>({ onLogout: () => {} });
 
+function NovoOrcamentoPageWrapper() {
+  const navigate = useNavigate();
+  const handleSalvar = (dados: any) => {
+    localStorage.setItem('novoOrcamento', JSON.stringify(dados));
+    window.dispatchEvent(new Event('orcamentoSalvo'));
+    navigate('/vendas-relatorio');
+  };
+
+  return <NovoOrcamentoPage onVoltar={() => navigate('/vendas-relatorio')} onSalvar={handleSalvar} />;
+}
+
+function CatalogoProdutosPageWrapper() {
+  const navigate = useNavigate();
+  const handleSalvar = (dados: any) => {
+    localStorage.setItem('novoPedido', JSON.stringify(dados));
+    window.dispatchEvent(new Event('pedidoSalvo'));
+    navigate('/catalogo-produtos');
+  };
+
+  return <CatalogoProdutosPage onVoltar={() => navigate('/catalogo-produtos')} onSalvar={handleSalvar} />;
+}
+
 // @ts-ignore
 const AdministrativoDashboardPage = React.lazy(() => import('./pages/AdministrativoDashboard').then(m => ({ default: (props: any) => React.createElement(m.AdministrativoDashboardPage, props) })));
 // @ts-ignore
@@ -48,6 +70,8 @@ const PedidosCompraPage = React.lazy(() => import('./pages/PedidosCompra').then(
 // @ts-ignore
 const VendasPage = React.lazy(() => import('./pages/Vendas').then(m => ({ default: (props: any) => React.createElement(m.VendasPage, props) })));
 // @ts-ignore
+const NovoOrcamentoPage = React.lazy(() => import('./pages/NovoOrcamento').then(m => ({ default: (props: any) => React.createElement(m.NovoOrcamentoPage, props) })));
+// @ts-ignore
 const GestaoVendasPage = React.lazy(() => import('./pages/GestaoVendas').then(m => ({ default: (props: any) => React.createElement(m.GestaoVendasPage, props) })));
 // @ts-ignore
 const ContasPagarPage = React.lazy(() => import('./pages/ContasPagar').then(m => ({ default: (props: any) => React.createElement(m.ContasPagarPage, props) })));
@@ -71,6 +95,8 @@ const ResiduosUrbanoPage = React.lazy(() => import('./pages/ResiduosUrbano').the
 const ResiduosMTRPage = React.lazy(() => import('./pages/ResiduosMTR').then(m => ({ default: (props: any) => React.createElement(m.ResiduosMTRPage, props) })));
 // @ts-ignore
 const CatalogoServicosPage = React.lazy(() => import('./pages/CatalogoServicos').then(m => ({ default: (props: any) => React.createElement(m.CatalogoServicosPage, props) })));
+// @ts-ignore
+const CatalogoProdutosPage = React.lazy(() => import('./pages/CatalogoProdutos').then(m => ({ default: (props: any) => React.createElement(m.CatalogoProdutosPage, props) })));
 // @ts-ignore
 const DocumentacaoPage = React.lazy(() => import('./pages/Documentacao').then(m => ({ default: (props: any) => React.createElement(m.DocumentacaoPage, props) })));
 // @ts-ignore
@@ -160,8 +186,10 @@ function AppRoutes() {
             <Route path="/permissoes" element={<PageContent><PermissoesPage /></PageContent>} />
             <Route path="/solicitacao-compra" element={<PageContent><SolicitacaoCompraPage /></PageContent>} />
             <Route path="/pedidos-compra" element={<PageContent><PedidosCompraPage /></PageContent>} />
-            <Route path="/catalogo-produtos" element={<PageContent><VendasPage /></PageContent>} />
+            <Route path="/catalogo-produtos" element={<PageContent><CatalogoProdutosPageWrapper /></PageContent>} />
+            <Route path="/catalogo-produtos/novo-pedido" element={<PageContent><CatalogoProdutosPageWrapper /></PageContent>} />
             <Route path="/vendas-relatorio" element={<PageContent><GestaoVendasPage /></PageContent>} />
+            <Route path="/gestao-vendas/novo-orcamento" element={<PageContent><NovoOrcamentoPageWrapper /></PageContent>} />
             <Route path="/contas-pagar" element={<PageContent><ContasPagarPage /></PageContent>} />
             <Route path="/contas-receber" element={<PageContent><ContasReceberPage /></PageContent>} />
             <Route path="/auditoria" element={<PageContent><AuditoriaPage /></PageContent>} />

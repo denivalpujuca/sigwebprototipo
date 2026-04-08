@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { useNavigate } from 'react-router-dom';
 
 interface Servico {
   id: number;
@@ -26,6 +27,7 @@ interface VendasProps {
 }
 
 export const VendasPage: React.FC<VendasProps> = () => {
+  const navigate = useNavigate();
   const [servicos, setServicos] = useState<Servico[]>(initialServicos);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -77,6 +79,13 @@ export const VendasPage: React.FC<VendasProps> = () => {
             />
           </div>
         </div>
+        <button
+          onClick={() => navigate('/catalogo-produtos')}
+          className="bg-emerald-600 hover:bg-emerald-700 px-6 py-2.5 text-white font-bold rounded-md flex items-center gap-2 transition-colors"
+        >
+          <MaterialIcon name="store" size={20} />
+          Catálogo de Produtos
+        </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
