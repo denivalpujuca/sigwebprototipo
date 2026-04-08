@@ -19,6 +19,7 @@ import {
   Send,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 interface ItemOrcamento {
   servico: string;
@@ -249,19 +250,20 @@ export const GestaoVendasPage: React.FC = () => {
           />
         </div>
         <div className="flex items-center gap-2">
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-            className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="todos">Todos os Status</option>
-            <option value="rascunho">Rascunho</option>
-            <option value="enviado">Enviado</option>
-            <option value="aprovado">Aprovado</option>
-            <option value="recusado">Recusado</option>
-            <option value="expirado">Expirado</option>
-            <option value="convertido">Convertido</option>
-          </select>
+          <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Todos os Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os Status</SelectItem>
+              <SelectItem value="rascunho">Rascunho</SelectItem>
+              <SelectItem value="enviado">Enviado</SelectItem>
+              <SelectItem value="aprovado">Aprovado</SelectItem>
+              <SelectItem value="recusado">Recusado</SelectItem>
+              <SelectItem value="expirado">Expirado</SelectItem>
+              <SelectItem value="convertido">Convertido</SelectItem>
+            </SelectContent>
+          </Select>
           <button
             onClick={() => navigate('/gestao-vendas/novo-orcamento')}
             className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors"

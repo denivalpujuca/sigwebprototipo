@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 interface Usuario {
   id: number;
@@ -126,7 +127,7 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50">
+              <tr className="bg-[#f5f5f5]">
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nome</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Email</th>
@@ -172,7 +173,7 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+        <div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
           <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedUsuarios.length} de {filteredUsuarios.length} registros</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
@@ -210,13 +211,18 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = () => {
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Tipo de Usuário</label>
-              <select value={formData.tipoUsuario} onChange={(e) => setFormData({ ...formData, tipoUsuario: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm">
-                <option>Administrador</option>
-                <option>Gerente</option>
-                <option>Operador</option>
-                <option>Visualizador</option>
-                <option>Auditor</option>
-              </select>
+              <Select value={formData.tipoUsuario} onValueChange={(value) => setFormData({ ...formData, tipoUsuario: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Administrador">Administrador</SelectItem>
+                  <SelectItem value="Gerente">Gerente</SelectItem>
+                  <SelectItem value="Operador">Operador</SelectItem>
+                  <SelectItem value="Visualizador">Visualizador</SelectItem>
+                  <SelectItem value="Auditor">Auditor</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-3 pt-4">
               <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md">Cancelar</button>

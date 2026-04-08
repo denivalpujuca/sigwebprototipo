@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 interface MTR {
   id: number;
@@ -125,7 +126,7 @@ export const ResiduosMTRPage: React.FC<ResiduosMTRProps> = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50">
+              <tr className="bg-[#f5f5f5]">
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Código</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Resíduo</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Classe</th>
@@ -169,7 +170,7 @@ export const ResiduosMTRPage: React.FC<ResiduosMTRProps> = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+        <div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
           <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedMtrs.length} de {filteredMtrs.length} registros</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
@@ -200,11 +201,15 @@ export const ResiduosMTRPage: React.FC<ResiduosMTRProps> = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Classe</label>
-                <select value={formData.classe} onChange={(e) => setFormData({ ...formData, classe: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm">
-                  <option value="">Selecione</option>
-                  <option value="Classe I">Classe I - Perigoso</option>
-                  <option value="Classe II">Classe II - Não Perigoso</option>
-                </select>
+                <Select value={formData.classe} onValueChange={(value) => setFormData({ ...formData, classe: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Classe I">Classe I - Perigoso</SelectItem>
+                    <SelectItem value="Classe II">Classe II - Não Perigoso</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Quantidade</label>

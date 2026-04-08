@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 interface Modelo {
   id: number;
@@ -145,7 +146,7 @@ export const ModelosPage: React.FC<ModelosPageProps> = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50">
+              <tr className="bg-[#f5f5f5]">
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">ID</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Marca</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Modelo</th>
@@ -185,7 +186,7 @@ export const ModelosPage: React.FC<ModelosPageProps> = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+        <div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
           <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedModelos.length} de {filteredModelos.length} registros</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
@@ -211,11 +212,16 @@ export const ModelosPage: React.FC<ModelosPageProps> = () => {
           <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="mt-6 space-y-4">
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Marca</label>
-              <select value={formData.marcaId} onChange={(e) => setFormData({ ...formData, marcaId: Number(e.target.value) })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm">
-                {marcasDisponiveis.map(m => (
-                  <option key={m.id} value={m.id}>{m.nome}</option>
-                ))}
-              </select>
+              <Select value={String(formData.marcaId)} onValueChange={(value) => setFormData({ ...formData, marcaId: Number(value) })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {marcasDisponiveis.map(m => (
+                    <SelectItem key={m.id} value={String(m.id)}>{m.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Nome do Modelo</label>

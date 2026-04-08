@@ -298,7 +298,7 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
               <p className="text-slate-500">Nenhum serviço encontrado</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="space-y-3">
               {filteredServicos.map(servico => {
                 const Icon = categorias.find(c => c.id === servico.categoria)?.icon || Wrench;
                 const qtdCarrinho = carrinho[servico.id] || 0;
@@ -306,51 +306,48 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
                 return (
                   <div
                     key={servico.id}
-                    className={`bg-white rounded-xl border transition-all hover:shadow-md ${
+                    className={`bg-white rounded-xl border p-4 flex items-center gap-4 transition-all hover:shadow-md ${
                       servico.ativo ? 'border-slate-200' : 'border-slate-100 opacity-60'
                     }`}
                   >
-                    <div className="p-5">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                          <Icon className="w-5 h-5 text-emerald-600" />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-bold text-slate-900 truncate">{servico.nome}</h3>
-                          {servico.popular && (
-                            <div className="flex items-center gap-1 text-xs text-amber-600">
-                              <Star className="w-3 h-3 fill-amber-500" />
-                              <span>Popular</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                    {/* Ícone */}
+                    <div className="w-12 h-12 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                      <Icon className="w-6 h-6 text-emerald-600" />
+                    </div>
 
-                      <p className="text-xs text-slate-500 mb-4 line-clamp-2">{servico.descricao}</p>
-
-                      <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-4">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>Por {servico.unidade}</span>
-                      </div>
-
-                      <div className="mb-4">
-                        {tabelaAtual.desconto > 0 && (
-                          <span className="text-xs text-slate-400 line-through">
-                            {formatarMoeda(servico.valorUnitario)}
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-base font-bold text-slate-900">{servico.nome}</h3>
+                        {servico.popular && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">
+                            <Star className="w-3 h-3 fill-amber-500 mr-1" />
+                            Popular
                           </span>
                         )}
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-extrabold text-slate-900">
-                            {formatarMoeda(calcularValor(servico.valorUnitario))}
-                          </span>
-                          <span className="text-xs text-slate-500">/{servico.unidade}</span>
-                        </div>
                       </div>
+                      <p className="text-sm text-slate-500 truncate">{servico.descricao}</p>
+                    </div>
 
+                    {/* Preço */}
+                    <div className="text-right shrink-0">
+                      {tabelaAtual.desconto > 0 && (
+                        <p className="text-xs text-slate-400 line-through">
+                          {formatarMoeda(servico.valorUnitario)}
+                        </p>
+                      )}
+                      <p className="text-xl font-extrabold text-slate-900">
+                        {formatarMoeda(calcularValor(servico.valorUnitario))}
+                      </p>
+                      <p className="text-xs text-slate-500">/{servico.unidade}</p>
+                    </div>
+
+                    {/* Botão */}
+                    <div className="shrink-0">
                       {servico.ativo ? (
                         <button
                           onClick={() => adicionarCarrinho(servico.id)}
-                          className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
+                          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${
                             qtdCarrinho > 0
                               ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
                               : 'bg-emerald-600 text-white hover:bg-emerald-700'
@@ -359,17 +356,17 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
                           {qtdCarrinho > 0 ? (
                             <>
                               <CheckCircle2 className="w-4 h-4" />
-                              No orçamento ({qtdCarrinho})
+                              {qtdCarrinho}
                             </>
                           ) : (
                             <>
                               <Plus className="w-4 h-4" />
-                              Adicionar
+                              Add
                             </>
                           )}
                         </button>
                       ) : (
-                        <button disabled className="w-full py-2.5 rounded-lg text-sm font-semibold bg-slate-100 text-slate-400 cursor-not-allowed">
+                        <button disabled className="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-100 text-slate-400 cursor-not-allowed">
                           Indisponível
                         </button>
                       )}

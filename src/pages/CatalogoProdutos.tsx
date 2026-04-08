@@ -138,12 +138,14 @@ export const CatalogoProdutosPage: React.FC<NovoPedidoProps> = ({ onVoltar, onSa
   }, [dropdownAberto]);
 
   const filteredProdutos = useMemo(() => {
-    return produtosDisponiveis.filter(produto => {
-      const matchCategoria = categoriaSelecionada === 'todas' || produto.categoria === categoriaSelecionada;
-      const matchSearch = produto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          produto.descricao.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchCategoria && matchSearch;
-    });
+    return produtosDisponiveis
+      .filter(produto => {
+        const matchCategoria = categoriaSelecionada === 'todas' || produto.categoria === categoriaSelecionada;
+        const matchSearch = produto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            produto.descricao.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchCategoria && matchSearch;
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [categoriaSelecionada, searchTerm]);
 
   const tabelaAtual = tabelasPreco.find(t => t.id === tabelaSelecionada)!;
@@ -228,27 +230,32 @@ export const CatalogoProdutosPage: React.FC<NovoPedidoProps> = ({ onVoltar, onSa
             </Select>
           </div>
 
-          {/* Categoria */}
+          {/* Categorias */}
           <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <h3 className="text-sm font-bold text-slate-900 mb-3">Categoria</h3>
-            <Select value={categoriaSelecionada} onValueChange={setCategoriaSelecionada}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categorias.map(cat => {
-                  const Icon = cat.icon;
-                  return (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-slate-500" />
-                        <span>{cat.nome}</span>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+            <h3 className="text-sm font-bold text-slate-900 mb-3">Categorias</h3>
+            <div className="space-y-1">
+              {categorias.map(cat => {
+                const Icon = cat.icon;
+                const count = cat.id === 'todas'
+                  ? produtosDisponiveis.filter(p => p.ativo).length
+                  : produtosDisponiveis.filter(p => p.categoria === cat.id && p.ativo).length;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setCategoriaSelecionada(cat.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                      categoriaSelecionada === cat.id
+                        ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${categoriaSelecionada === cat.id ? 'text-emerald-600' : 'text-slate-400'}`} />
+                    <span className="flex-1 text-left">{cat.nome}</span>
+                    <span className="text-xs text-slate-400">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Resumo */}

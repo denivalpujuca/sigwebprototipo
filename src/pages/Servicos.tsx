@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { MaterialIcon } from '../components/Icon';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 interface Servico {
   id: number;
@@ -118,7 +118,7 @@ export const ServicosPage: React.FC<ServicosProps> = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50">
+              <tr className="bg-[#f5f5f5]">
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nome</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Descrição</th>
@@ -166,7 +166,7 @@ export const ServicosPage: React.FC<ServicosProps> = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+        <div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
           <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedServicos.length} de {filteredServicos.length} registros</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
@@ -184,41 +184,55 @@ export const ServicosPage: React.FC<ServicosProps> = () => {
         </div>
       </div>
 
-      <Sheet open={isModalOpen} onOpenChange={(open) => { if (!open) setIsModalOpen(false); }}>
-        <SheetContent className="sm:max-w-[540px]">
-          <SheetHeader>
-            <SheetTitle>{editingServico ? 'Editar Serviço' : 'Novo Serviço'}</SheetTitle>
-          </SheetHeader>
-          <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="mt-6 space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Nome do Serviço</label>
-              <input type="text" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
+      {/* Modal de Editar/Inserir */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setIsModalOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-slate-200 p-6">
+              <h2 className="text-lg font-semibold text-slate-900">{editingServico ? 'Editar Serviço' : 'Novo Serviço'}</h2>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Descrição</label>
-              <textarea value={formData.descricao} onChange={(e) => setFormData({ ...formData, descricao: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" rows={2} required />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Categoria</label>
-              <input type="text" value={formData.categoria} onChange={(e) => setFormData({ ...formData, categoria: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Valor Unitário</label>
-                <input type="number" step="0.01" value={formData.valorUnitario} onChange={(e) => setFormData({ ...formData, valorUnitario: parseFloat(e.target.value) })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Nome do Serviço</label>
+                <input type="text" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Unidade</label>
-                <input type="text" value={formData.unidade} onChange={(e) => setFormData({ ...formData, unidade: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" placeholder="viagem, dia, hora..." required />
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Descrição</label>
+                <textarea value={formData.descricao} onChange={(e) => setFormData({ ...formData, descricao: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" rows={2} required />
               </div>
-            </div>
-            <div className="flex gap-3 pt-4">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md">Cancelar</button>
-              <button type="submit" className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md">Salvar</button>
-            </div>
-          </form>
-        </SheetContent>
-      </Sheet>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Categoria</label>
+                <Select value={formData.categoria} onValueChange={(value) => setFormData({ ...formData, categoria: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Transporte">Transporte</SelectItem>
+                    <SelectItem value="Locação">Locação</SelectItem>
+                    <SelectItem value="Serviços">Serviços</SelectItem>
+                    <SelectItem value="Seguros">Seguros</SelectItem>
+                    <SelectItem value="Manutenção">Manutenção</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Valor Unitário</label>
+                  <input type="number" step="0.01" value={formData.valorUnitario} onChange={(e) => setFormData({ ...formData, valorUnitario: parseFloat(e.target.value) })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Unidade</label>
+                  <input type="text" value={formData.unidade} onChange={(e) => setFormData({ ...formData, unidade: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" placeholder="viagem, dia, hora..." required />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md">Cancelar</button>
+                <button type="submit" className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 

@@ -120,7 +120,7 @@ export const EmpresasPage: React.FC<EmpresasProps> = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50">
+              <tr className="bg-[#f5f5f5]">
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nome Fantasia</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Razão Social</th>
@@ -164,7 +164,7 @@ export const EmpresasPage: React.FC<EmpresasProps> = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+        <div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
           <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedEmpresas.length} de {filteredEmpresas.length} registros</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">

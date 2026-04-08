@@ -87,7 +87,7 @@ export const OficinaDashboardPage: React.FC<OficinaDashboardProps> = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50">
+              <tr className="bg-[#f5f5f5]">
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">OS</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Veículo</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Placa</th>
@@ -105,7 +105,7 @@ export const OficinaDashboardPage: React.FC<OficinaDashboardProps> = () => {
               ) : (
                 paginatedOSs.map(os => (
                   <tr key={os.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-4 text-sm font-bold text-slate-900">#{os.id}</td>
+                    <td className="px-4 py-4 text-sm font-bold text-slate-900">{os.id}</td>
                     <td className="px-4 py-4 text-sm font-medium text-slate-900">{os.veiculo}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{os.placa}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{os.tipo}</td>
@@ -126,7 +126,7 @@ export const OficinaDashboardPage: React.FC<OficinaDashboardProps> = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+        <div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
           <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedOSs.length} de {filteredOSs.length} registros</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">

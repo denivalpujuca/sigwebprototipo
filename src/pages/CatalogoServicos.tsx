@@ -4,7 +4,6 @@ import {
   Search,
   ChevronRight,
   Star,
-  Clock,
   Shield,
   Wrench,
   Truck,
@@ -27,7 +26,6 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../components/ui/sheet';
 
 interface Servico {
   id: number;
@@ -55,6 +53,11 @@ const categorias = [
   { id: 'seguros', nome: 'Seguros', icon: Shield },
   { id: 'energia', nome: 'Energia', icon: Zap },
 ];
+
+const getCategoriaIcon = (categoriaId: string) => {
+  const cat = categorias.find(c => c.id === categoriaId);
+  return cat ? cat.icon : Wrench;
+};
 
 const initialServicos: Servico[] = [
   { id: 1, nome: 'Frete Rodoviário', descricao: 'Serviço de transporte de cargas para médias e longas distâncias', categoria: 'transporte', valorUnitario: 1500, unidade: 'viagem', ativo: true, popular: true },
@@ -112,12 +115,14 @@ export const CatalogoServicosPage: React.FC = () => {
   const tabelaAtual = tabelasPreco.find(t => t.id === tabelaSelecionada)!;
 
   const filteredServicos = useMemo(() => {
-    return initialServicos.filter(servico => {
-      const matchCategoria = categoriaSelecionada === 'todas' || servico.categoria === categoriaSelecionada;
-      const matchSearch = servico.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          servico.descricao.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchCategoria && matchSearch;
-    });
+    return initialServicos
+      .filter(servico => {
+        const matchCategoria = categoriaSelecionada === 'todas' || servico.categoria === categoriaSelecionada;
+        const matchSearch = servico.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            servico.descricao.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchCategoria && matchSearch;
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [categoriaSelecionada, searchTerm]);
 
   const calcularValor = (valorOriginal: number) => {
@@ -230,23 +235,21 @@ export const CatalogoServicosPage: React.FC = () => {
 
   const CarrinhoConteudo = (
     <div className="flex flex-col h-full">
-      <SheetHeader className="border-b pb-4 px-0">
-        <div className="flex items-center justify-between pr-4">
-          <SheetTitle className="flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5" />
-            Carrinho
-          </SheetTitle>
-          {totalItens > 0 && (
-            <button
-              onClick={limparCarrinho}
-              className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Limpar
-            </button>
-          )}
+      <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="w-5 h-5" />
+          <span className="font-semibold text-slate-900">Carrinho</span>
         </div>
-      </SheetHeader>
+        {totalItens > 0 && (
+          <button
+            onClick={limparCarrinho}
+            className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Limpar
+          </button>
+        )}
+      </div>
 
       <div className="flex-1 overflow-y-auto py-4">
         {itensCarrinho.length === 0 ? (
@@ -341,21 +344,37 @@ export const CatalogoServicosPage: React.FC = () => {
         </div>
 
         {/* Botão do carrinho no header */}
-        <Sheet open={carrinhoAberto} onOpenChange={setCarrinhoAberto}>
-          <SheetTrigger asChild>
-            <button className="relative p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors">
-              <ShoppingCart className="w-5 h-5" />
-              {totalItens > 0 && (
-                <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                  {totalItens}
-                </span>
-              )}
-            </button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-[480px] sm:w-[560px] p-6">
-            {CarrinhoConteudo}
-          </SheetContent>
-        </Sheet>
+        <button
+          onClick={() => setCarrinhoAberto(true)}
+          className="relative p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors"
+        >
+          <ShoppingCart className="w-5 h-5" />
+          {totalItens > 0 && (
+            <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+              {totalItens}
+            </span>
+          )}
+        </button>
+
+        {/* Modal do Carrinho */}
+        {carrinhoAberto && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setCarrinhoAberto(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="border-b border-slate-200 p-6 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <ShoppingCart className="w-5 h-5" />
+                  Carrinho
+                </h2>
+                <button onClick={() => setCarrinhoAberto(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                {CarrinhoConteudo}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal de Checkout */}
         {checkoutAberto && (
@@ -629,29 +648,24 @@ export const CatalogoServicosPage: React.FC = () => {
           {/* Categorias */}
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <h3 className="text-sm font-bold text-slate-900 mb-3">Categorias</h3>
-            <div className="space-y-1">
-              {categorias.map(cat => {
-                const Icon = cat.icon;
-                const count = cat.id === 'todas'
-                  ? initialServicos.filter(s => s.ativo).length
-                  : initialServicos.filter(s => s.categoria === cat.id && s.ativo).length;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => setCategoriaSelecionada(cat.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                      categoriaSelecionada === cat.id
-                        ? 'bg-emerald-50 text-emerald-700 font-semibold'
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 ${categoriaSelecionada === cat.id ? 'text-emerald-600' : 'text-slate-400'}`} />
-                    <span className="flex-1 text-left">{cat.nome}</span>
-                    <span className="text-xs text-slate-400">{count}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <Select value={categoriaSelecionada} onValueChange={setCategoriaSelecionada}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {categorias.map(cat => {
+                  const Icon = getCategoriaIcon(cat.id);
+                  return (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-4 h-4 text-slate-500" />
+                      <span>{cat.nome}</span>
+                    </div>
+                  </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -678,67 +692,57 @@ export const CatalogoServicosPage: React.FC = () => {
               <p className="text-slate-500">Nenhum serviço encontrado</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="space-y-3">
               {filteredServicos.map(servico => {
-                const Icon = categorias.find(c => c.id === servico.categoria)?.icon || Wrench;
+                const Icon = getCategoriaIcon(servico.categoria);
                 const valorComDesconto = calcularValor(servico.valorUnitario);
                 const qtdCarrinho = carrinho[servico.id] || 0;
 
                 return (
                   <div
                     key={servico.id}
-                    className={`bg-white rounded-xl border transition-all hover:shadow-md ${
+                    className={`bg-white rounded-xl border p-4 flex items-center gap-4 transition-all hover:shadow-md ${
                       servico.ativo ? 'border-slate-200' : 'border-slate-100 opacity-60'
                     }`}
                   >
-                    <div className="p-5">
-                      {/* Header */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                            <Icon className="w-5 h-5 text-emerald-600" />
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-bold text-slate-900">{servico.nome}</h3>
-                            {servico.popular && (
-                              <div className="flex items-center gap-1 text-xs text-amber-600">
-                                <Star className="w-3 h-3 fill-amber-500" />
-                                <span>Popular</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                    {/* Ícone */}
+                    <div className="w-12 h-12 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                      <Icon className="w-6 h-6 text-emerald-600" />
+                    </div>
 
-                      {/* Descrição */}
-                      <p className="text-xs text-slate-500 mb-4 line-clamp-2">{servico.descricao}</p>
-
-                      {/* Unidade */}
-                      <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-4">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>Por {servico.unidade}</span>
-                      </div>
-
-                      {/* Preço */}
-                      <div className="mb-4">
-                        {tabelaAtual.desconto > 0 && (
-                          <span className="text-xs text-slate-400 line-through">
-                            {formatarMoeda(servico.valorUnitario)}
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-base font-bold text-slate-900">{servico.nome}</h3>
+                        {servico.popular && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">
+                            <Star className="w-3 h-3 fill-amber-500 mr-1" />
+                            Popular
                           </span>
                         )}
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-extrabold text-slate-900">
-                            {formatarMoeda(valorComDesconto)}
-                          </span>
-                          <span className="text-xs text-slate-500">/{servico.unidade}</span>
-                        </div>
                       </div>
+                      <p className="text-sm text-slate-500 truncate">{servico.descricao}</p>
+                    </div>
 
-                      {/* Botão */}
+                    {/* Preço */}
+                    <div className="text-right shrink-0">
+                      {tabelaAtual.desconto > 0 && (
+                        <p className="text-xs text-slate-400 line-through">
+                          {formatarMoeda(servico.valorUnitario)}
+                        </p>
+                      )}
+                      <p className="text-xl font-extrabold text-slate-900">
+                        {formatarMoeda(valorComDesconto)}
+                      </p>
+                      <p className="text-xs text-slate-500">/{servico.unidade}</p>
+                    </div>
+
+                    {/* Botão */}
+                    <div className="shrink-0">
                       {servico.ativo ? (
                         <button
                           onClick={() => adicionarCarrinho(servico.id)}
-                          className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
+                          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${
                             qtdCarrinho > 0
                               ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
                               : 'bg-emerald-600 text-white hover:bg-emerald-700'
@@ -747,20 +751,17 @@ export const CatalogoServicosPage: React.FC = () => {
                           {qtdCarrinho > 0 ? (
                             <>
                               <CheckCircle2 className="w-4 h-4" />
-                              No carrinho ({qtdCarrinho})
+                              {qtdCarrinho}
                             </>
                           ) : (
                             <>
-                              <ShoppingCart className="w-4 h-4" />
-                              Adicionar
+                              <Plus className="w-4 h-4" />
+                              Add
                             </>
                           )}
                         </button>
                       ) : (
-                        <button
-                          disabled
-                          className="w-full py-2.5 rounded-lg text-sm font-semibold bg-slate-100 text-slate-400 cursor-not-allowed"
-                        >
+                        <button disabled className="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-100 text-slate-400 cursor-not-allowed">
                           Indisponível
                         </button>
                       )}

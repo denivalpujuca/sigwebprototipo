@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 interface Requisicao {
   id: number;
@@ -122,7 +123,7 @@ export const RequisicaoCompraProdutosPage: React.FC<RequisicaoCompraProdutosProp
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50">
+              <tr className="bg-[#f5f5f5]">
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">ID</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Setor</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Almoxarifado</th>
@@ -140,7 +141,7 @@ export const RequisicaoCompraProdutosPage: React.FC<RequisicaoCompraProdutosProp
               ) : (
                 paginatedRequisicoes.map(req => (
                   <tr key={req.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-4 text-sm font-bold text-slate-900">#{req.id}</td>
+                    <td className="px-4 py-4 text-sm font-bold text-slate-900">{req.id}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{req.setor}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{req.almoxarifado}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{req.itens} itens</td>
@@ -166,7 +167,7 @@ export const RequisicaoCompraProdutosPage: React.FC<RequisicaoCompraProdutosProp
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+        <div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
           <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedRequisicoes.length} de {filteredRequisicoes.length} registros</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
@@ -209,11 +210,16 @@ export const RequisicaoCompraProdutosPage: React.FC<RequisicaoCompraProdutosProp
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
-                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as typeof formData.status })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm">
-                  <option value="pendente">Pendente</option>
-                  <option value="aprovado">Aprovado</option>
-                  <option value="comprado">Comprado</option>
-                </select>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as typeof formData.status })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="aprovado">Aprovado</SelectItem>
+                    <SelectItem value="comprado">Comprado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex gap-3 pt-4">

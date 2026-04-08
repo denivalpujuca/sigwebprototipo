@@ -13,6 +13,11 @@ import {
   BookOpen,
   Bell,
   ChevronRight,
+  ShoppingBag,
+  Cloud,
+  Computer,
+  TrendingUp,
+  Settings,
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ElementType> = {
@@ -29,6 +34,11 @@ const iconMap: Record<string, React.ElementType> = {
   menu_book: BookOpen,
   notifications: Bell,
   chevron_right: ChevronRight,
+  shopping_cart: ShoppingBag,
+  cloud: Cloud,
+  computer: Computer,
+  trending_up: TrendingUp,
+  settings: Settings,
 };
 
 function getIcon(name: string, className: string = 'w-4 h-4') {
@@ -74,13 +84,28 @@ const menuItems: MenuItem[] = [
         id: 'intro',
         title: 'Sobre o Sistema',
         content: `
-          <p>O <strong>SigWeb</strong> (Sistema de Gestão Web) é um sistema integrado de gestão de frotas e serviços administrativos.</p>
-          <p>Desenvolvido para fornecer controle eficiente de veículos, máquinas, funcionários, clientes, fornecedores, ordens de serviço e muito mais.</p>
-          <p>O sistema é composto por módulos principais:</p>
+          <p>O <strong>SigWeb</strong> (Sistema de Gestão Web) é um sistema integrado de gestão empresarial.</p>
+          <p>Desenvolvido para fornecer controle eficiente de veículos, máquinas, funcionários, clientes, fornecedores, ordens de serviço, estoque, compras, vendas e muito mais.</p>
+          <p>O sistema é composto por <strong>10 módulos principais</strong>:</p>
           <ul class="list-disc pl-6 space-y-2">
-            <li><strong>SaaS</strong> - Módulo principal de gestão</li>
-            <li><strong>Abastecimento</strong> - Controle de abastecimento (mobile)</li>
-            <li><strong>Fiscal</strong> - Controle de frequência de funcionários</li>
+            <li><strong>Administrativo</strong> - Gestão de clientes, empresas, contratos, serviços, almoxarifados</li>
+            <li><strong>Compras</strong> - Fornecedores, solicitações e pedidos de compra</li>
+            <li><strong>Financeiro</strong> - Contas a pagar e receber</li>
+            <li><strong>Frota</strong> - Marcas, modelos, veículos e máquinas</li>
+            <li><strong>Gente e Gestão</strong> - Funcionários, cargos e auditoria</li>
+            <li><strong>Oficina</strong> - Dashboard e ordem de serviço</li>
+            <li><strong>Resíduos</strong> - MTR e urbano</li>
+            <li><strong>Suprimentos</strong> - Produtos, catálogo e requisições</li>
+            <li><strong>T.I.</strong> - Usuários, tipos e permissões</li>
+            <li><strong>Vendas</strong> - Catálogo de serviços e gestão de orçamentos</li>
+          </ul>
+          <h3 class="mt-4">Tecnologias</h3>
+          <ul>
+            <li><strong>Frontend:</strong> React + TypeScript + Vite</li>
+            <li><strong>Estilização:</strong> TailwindCSS + Shadcn UI</li>
+            <li><strong>Ícones:</strong> Lucide React + Material Icons</li>
+            <li><strong>Roteamento:</strong> React Router v6</li>
+            <li><strong>Dados:</strong> LocalStorage</li>
           </ul>
         `
       }
@@ -161,7 +186,9 @@ const menuItems: MenuItem[] = [
               <p>Tipos de serviços oferecidos.</p>
               <h3>Funcionalidades</h3>
               <ul>
-                <li>Cadastro de serviços</li>
+                <li>Cadastro de serviços (nome, descrição, categoria, valor, unidade)</li>
+                <li>Categoria via Select (Transporte, Locação, Manutenção, Serviços, Seguros, Energia)</li>
+                <li>Modal centralizado para edição/inserção</li>
                 <li>Status Ativo/Inativo</li>
               </ul>
             `
@@ -198,7 +225,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'compras',
         title: 'Compras',
-        icon: 'shopping_bag',
+        icon: 'shopping_cart',
         sections: [
           {
             id: 'fornecedores',
@@ -215,27 +242,13 @@ const menuItems: MenuItem[] = [
             `
           },
           {
-            id: 'produtos',
-            title: 'Produtos',
-            content: `
-              <p>Catálogo de produtos para compras.</p>
-              <h3>Funcionalidades</h3>
-              <ul>
-                <li>Cadastro com código, nome, preço, categoria</li>
-                <li>Upload de foto do produto</li>
-                <li>Status Ativo/Inativo</li>
-                <li>Relatório PDF</li>
-              </ul>
-            `
-          },
-          {
             id: 'solicitacao-compra',
             title: 'Solicitação de Compra',
             content: `
               <p>Visualização e cotação de produtos provenientes das requisições de suprimentos.</p>
               <h3>Fluxo</h3>
               <ul>
-                <li>Produtos são originados das requisições pendentes (em Suprimentos)</li>
+                <li>Produtos originados das requisições pendentes (em Suprimentos)</li>
                 <li>Quantidade automática da requisição</li>
                 <li>Preço editável para cotação</li>
                 <li>Adição ao carrinho com destaque visual</li>
@@ -243,7 +256,7 @@ const menuItems: MenuItem[] = [
               </ul>
               <h3>Funcionalidades</h3>
               <ul>
-                <li>Filtro por categoria</li>
+                <li>Filtro por categoria (Select)</li>
                 <li>Carrinho de compras</li>
                 <li>Confirmação de pedido</li>
                 <li>Atualização automática das requisições</li>
@@ -255,11 +268,16 @@ const menuItems: MenuItem[] = [
             title: 'Pedidos de Compra',
             content: `
               <p>Pedidos de compra finalizados.</p>
+              <h3>Formato do Pedido</h3>
+              <ul>
+                <li>Código: 000001/2026, 000002/2026 (ano da data)</li>
+              </ul>
               <h3>Funcionalidades</h3>
               <ul>
                 <li>Criar pedido com múltiplos itens</li>
                 <li>Cálculo automático de total</li>
                 <li>Fluxo de aprovação</li>
+                <li>Status: Pendente, Aprovado, Rejeitado</li>
                 <li>Relatório PDF</li>
               </ul>
             `
@@ -269,19 +287,36 @@ const menuItems: MenuItem[] = [
       {
         id: 'suprimentos',
         title: 'Suprimentos',
-        icon: 'inventory_2',
+        icon: 'cloud',
         sections: [
           {
-            id: 'produtos-suprimentos',
+            id: 'produtos',
             title: 'Produtos',
             content: `
               <p>Catálogo de produtos para suprimentos.</p>
               <h3>Funcionalidades</h3>
               <ul>
                 <li>Cadastro com código, nome, preço, categoria</li>
-                <li>Upload de foto do produto</li>
+                <li>Subcategorias dependentes da categoria</li>
                 <li>Status Ativo/Inativo</li>
                 <li>Relatório PDF</li>
+              </ul>
+            `
+          },
+          {
+            id: 'catalogo-produtos',
+            title: 'Catálogo de Produtos',
+            content: `
+              <p>Catálogo de produtos para venda com controle de estoque.</p>
+              <h3>Funcionalidades</h3>
+              <ul>
+                <li>Seleção de empresa para ver estoque</li>
+                <li>Filtro por categoria (Select)</li>
+                <li>Busca de produtos</li>
+                <li>Carrinho de compras</li>
+                <li>Controle de estoque por empresa</li>
+                <li>Finalização de venda</li>
+                <li>Ordenação alfabética dos produtos</li>
               </ul>
             `
           },
@@ -304,7 +339,7 @@ const menuItems: MenuItem[] = [
           },
           {
             id: 'requisicao-departamento',
-            title: 'Requisição Departamentos',
+            title: 'Req. Departamentos',
             content: `
               <p>Solicitação de produtos pelos departamentos da empresa.</p>
               <h3>Funcionalidades</h3>
@@ -721,34 +756,41 @@ const menuItems: MenuItem[] = [
       {
         id: 'vendas',
         title: 'Vendas',
-        icon: 'point_of_sale',
+        icon: 'trending_up',
         sections: [
           {
-            id: 'catalogo-produtos',
-            title: 'Catálogo de Produtos',
+            id: 'catalogo-servicos',
+            title: 'Catálogo de Serviços',
             content: `
-              <p>Catálogo de produtos para venda com controle de estoque.</p>
+              <p>Catálogo de serviços para venda com tabela de preços e descontos.</p>
               <h3>Funcionalidades</h3>
               <ul>
-                <li>Seleção de empresa para ver estoque</li>
-                <li>Filtro por categoria</li>
-                <li>Busca de produtos</li>
+                <li>Seleção de tabela de preços com desconto</li>
+                <li>Filtro por categoria (Select)</li>
+                <li>Busca de serviços</li>
                 <li>Carrinho de compras</li>
-                <li>Controle de estoque por empresa</li>
-                <li>Finalização de venda</li>
+                <li>Finalização de pedido</li>
+                <li>Ordenação alfabética dos serviços</li>
+              </ul>
+              <h3>Categorias</h3>
+              <ul>
+                <li>Transporte, Locação, Manutenção</li>
+                <li>Serviços Gerais, Seguros, Energia</li>
               </ul>
             `
           },
           {
-            id: 'gestao-vendas',
-            title: 'Gestão de Vendas',
+            id: 'gestao-orcamentos',
+            title: 'Gestão de Orçamentos',
             content: `
-              <p>Controle e acompanhamento de vendas.</p>
+              <p>Controle e acompanhamento de orçamentos e vendas.</p>
               <h3>Funcionalidades</h3>
               <ul>
-                <li>Registro de vendas realizadas</li>
+                <li>Registro de orçamentos/vendas</li>
                 <li>Vinculação a cliente</li>
                 <li>Controle de valor e data</li>
+                <li>Status: Rascunho, Enviado, Aprovado, Recusado, Expirado, Convertido</li>
+                <li>Filtro por status</li>
               </ul>
             `
           }
@@ -767,21 +809,32 @@ const menuItems: MenuItem[] = [
         title: 'Navegação',
         content: `
           <h3>Menu Lateral</h3>
-          <p>Todas as opções organizadas por módulos:</p>
+          <p>Todas as opções organizadas por módulos (10 módulos principais):</p>
           <ul class="grid grid-cols-2 gap-2">
-            <li>Administrativo (6 itens)</li>
-            <li>Frota (3 itens)</li>
-            <li>Gente e Gestão (3 itens)</li>
-            <li>Oficina (2 itens)</li>
-            <li>Compras (4 itens)</li>
-            <li>Financeiro (2 itens)</li>
+            <li><strong>Administrativo</strong> - Dashboard, Almoxarifados, Auditoria, Clientes, Contratos, Empresas, Período Ano, Serviços</li>
+            <li><strong>Compras</strong> - Fornecedores, Solicitação de Compra, Pedidos de Compra</li>
+            <li><strong>Financeiro</strong> - Contas a Pagar, Contas a Receber</li>
+            <li><strong>Frota</strong> - Marcas, Modelos, Veículos e Máquinas</li>
+            <li><strong>Gente e Gestão</strong> - Auditoria, Cargos, Funcionários</li>
+            <li><strong>Oficina</strong> - Dashboard, Ordem de Serviço</li>
+            <li><strong>Resíduos</strong> - Resíduos MTR, Resíduos Urbano</li>
+            <li><strong>Suprimentos</strong> - Produtos, Catálogo de Produtos, Requisição de Compra, Req. Departamentos</li>
+            <li><strong>T.I.</strong> - Permissões, Tipos de Usuário, Usuários</li>
+            <li><strong>Vendas</strong> - Catálogo de Serviços, Gestão de Orçamentos</li>
           </ul>
           <h3 class="mt-4">Header</h3>
           <ul>
-            <li>Ícone de documentação (menu_book)</li>
+            <li>Logo SigWeb</li>
+            <li>Ícone de documentação</li>
             <li>Ícone de notificações</li>
             <li>Data e hora</li>
             <li>Botão de logout</li>
+          </ul>
+          <h3 class="mt-4">Componentes UI</h3>
+          <ul>
+            <li><strong>Select Shadcn:</strong> Dropdowns padronizados em todo o sistema</li>
+            <li><strong>Modal Centralizado:</strong> Formulários de edição/inserção</li>
+            <li><strong>Tabela com Paginação:</strong> Busca, paginação e ordenação</li>
           </ul>
         `
       },
@@ -799,6 +852,57 @@ const menuItems: MenuItem[] = [
           </ul>
           <h3 class="mt-4">Logo</h3>
           <p>SW (SigWeb) em verde gradiente</p>
+        `
+      },
+      {
+        id: 'fluxos',
+        title: 'Fluxos do Sistema',
+        content: `
+          <h3>Fluxo de Vendas e Contratos</h3>
+          <div class="flex items-center gap-2 my-4 flex-wrap">
+            <div class="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm font-medium">Orçamento</div>
+            <span class="text-gray-400">→</span>
+            <div class="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm font-medium">Contrato</div>
+            <span class="text-gray-400">→</span>
+            <div class="bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm font-medium">Lançamentos</div>
+          </div>
+          <p class="text-sm text-gray-600 mb-6">Orçamentos aprovados são convertidos em contratos, gerando automaticamente lançamentos financeiros (contas a pagar ou receber).</p>
+
+          <h3>Fluxo de Compras</h3>
+          <div class="flex items-center gap-2 my-4 flex-wrap">
+            <div class="bg-purple-100 text-purple-800 px-3 py-2 rounded-lg text-sm font-medium">Requisição de Compra</div>
+            <span class="text-gray-400">→</span>
+            <div class="bg-purple-100 text-purple-800 px-3 py-2 rounded-lg text-sm font-medium">Solicitação de Compra</div>
+            <span class="text-gray-400">→</span>
+            <div class="bg-purple-100 text-purple-800 px-3 py-2 rounded-lg text-sm font-medium">Pedidos de Compra</div>
+            <span class="text-gray-400">→</span>
+            <div class="bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm font-medium">Entrada no Estoque</div>
+          </div>
+          <p class="text-sm text-gray-600 mb-6">Departamentos fazem requisições que viram solicitações de cotação, transformando-se em pedidos de compra finalizados que alimentam o estoque dos almoxarifados.</p>
+
+          <h3>Fluxo de Serviços</h3>
+          <div class="flex items-center gap-2 my-4 flex-wrap">
+            <div class="bg-amber-100 text-amber-800 px-3 py-2 rounded-lg text-sm font-medium">Catálogo de Serviços</div>
+            <span class="text-gray-400">→</span>
+            <div class="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm font-medium">Carrinho</div>
+            <span class="text-gray-400">→</span>
+            <div class="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm font-medium">Pedido</div>
+            <span class="text-gray-400">→</span>
+            <div class="bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm font-medium">Lançamento Financeiro</div>
+          </div>
+          <p class="text-sm text-gray-600 mb-6">Clientes selecionam serviços do catálogo, adicionam ao carrinho, finalizam o pedido que gera automaticamente lançamento financeiro.</p>
+
+          <h3>Fluxo de Oficina</h3>
+          <div class="flex items-center gap-2 my-4 flex-wrap">
+            <div class="bg-red-100 text-red-800 px-3 py-2 rounded-lg text-sm font-medium">Ordem de Serviço</div>
+            <span class="text-gray-400">→</span>
+            <div class="bg-orange-100 text-orange-800 px-3 py-2 rounded-lg text-sm font-medium">Em Andamento</div>
+            <span class="text-gray-400">→</span>
+            <div class="bg-yellow-100 text-yellow-800 px-3 py-2 rounded-lg text-sm font-medium">Aguardando Peças</div>
+            <span class="text-gray-400">→</span>
+            <div class="bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm font-medium">Concluída</div>
+          </div>
+          <p class="text-sm text-gray-600">Ordens de serviço passam por status: Aberta → Em Andamento → Aguardando Peças → Concluída, com controle de veículos e serviços realizados.</p>
         `
       },
       {

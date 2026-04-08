@@ -149,7 +149,7 @@ function AppRoutes() {
   };
 
   const PageContent: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <main className="p-6 overflow-y-auto bg-slate-50 h-full">{children}</main>
+    <main className="p-6 overflow-y-auto bg-white h-full">{children}</main>
   );
 
   if (!isLoggedIn) {

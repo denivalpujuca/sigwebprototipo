@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 interface OS {
   id: number;
@@ -147,7 +148,7 @@ export const OrdemServicoPage: React.FC<OrdemServicoProps> = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50">
+              <tr className="bg-[#f5f5f5]">
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">ID</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Veículo</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Placa</th>
@@ -165,7 +166,7 @@ export const OrdemServicoPage: React.FC<OrdemServicoProps> = () => {
               ) : (
                 paginatedOS.map(os => (
                   <tr key={os.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-4 text-sm font-semibold text-slate-900">#{os.id}</td>
+                    <td className="px-4 py-4 text-sm font-semibold text-slate-900">{os.id}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{os.veiculo}</td>
                     <td className="px-4 py-4 text-sm text-slate-500 font-mono">{os.placa}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{os.servico}</td>
@@ -191,7 +192,7 @@ export const OrdemServicoPage: React.FC<OrdemServicoProps> = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+        <div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
           <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedOS.length} de {filteredOS.length} registros</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
@@ -229,12 +230,17 @@ export const OrdemServicoPage: React.FC<OrdemServicoProps> = () => {
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
-              <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as OS['status'] })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm">
-                <option value="aberta">Aberta</option>
-                <option value="andamento">Em Andamento</option>
-                <option value="esperando">Aguardando Peças</option>
-                <option value="concluida">Concluída</option>
-              </select>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as OS['status'] })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="aberta">Aberta</SelectItem>
+                  <SelectItem value="andamento">Em Andamento</SelectItem>
+                  <SelectItem value="esperando">Aguardando Peças</SelectItem>
+                  <SelectItem value="concluida">Concluída</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-3 pt-4">
               <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md">Cancelar</button>

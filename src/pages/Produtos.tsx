@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 interface Produto {
   id: number;
@@ -149,7 +150,7 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50">
+              <tr className="bg-[#f5f5f5]">
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nome</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Descrição</th>
@@ -193,7 +194,7 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+        <div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
           <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedProdutos.length} de {filteredProdutos.length} registros</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
@@ -228,25 +229,37 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Categoria</label>
-                <select value={formData.categoria} onChange={(e) => handleCategoriaChange(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm">
-                  <option value="">Selecione</option>
-                  {categorias.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <Select value={formData.categoria} onValueChange={handleCategoriaChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Subcategoria</label>
-                <select value={formData.subcategoria} onChange={(e) => setFormData({ ...formData, subcategoria: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" disabled={!formData.categoria}>
-                  <option value="">Selecione</option>
-                  {availableSubcategorias.map(sc => <option key={sc} value={sc}>{sc}</option>)}
-                </select>
+                <Select value={formData.subcategoria} onValueChange={(value) => setFormData({ ...formData, subcategoria: value })} disabled={!formData.categoria}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSubcategorias.map(sc => <SelectItem key={sc} value={sc}>{sc}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Unidade</label>
-              <select value={formData.unidade} onChange={(e) => setFormData({ ...formData, unidade: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm">
-                <option value="">Selecione</option>
-                {unidades.map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
+              <Select value={formData.unidade} onValueChange={(value) => setFormData({ ...formData, unidade: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unidades.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-3 pt-4">
               <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md">Cancelar</button>

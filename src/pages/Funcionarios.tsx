@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 interface Funcionario {
   id: number;
@@ -137,7 +138,7 @@ export const FuncionariosPage: React.FC<FuncionariosProps> = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50">
+              <tr className="bg-[#f5f5f5]">
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nome</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">CPF</th>
@@ -185,7 +186,7 @@ export const FuncionariosPage: React.FC<FuncionariosProps> = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+        <div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
           <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedFuncionarios.length} de {filteredFuncionarios.length} registros</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
@@ -244,12 +245,17 @@ export const FuncionariosPage: React.FC<FuncionariosProps> = () => {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
-                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as Funcionario['status'] })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm">
-                  <option value="ATIVO">Ativo</option>
-                  <option value="FERIAS">Férias</option>
-                  <option value="LICENCA">Licença</option>
-                  <option value="DEMITIDO">Demitido</option>
-                </select>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as Funcionario['status'] })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ATIVO">Ativo</SelectItem>
+                    <SelectItem value="FERIAS">Férias</SelectItem>
+                    <SelectItem value="LICENCA">Licença</SelectItem>
+                    <SelectItem value="DEMITIDO">Demitido</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex gap-3 pt-4">

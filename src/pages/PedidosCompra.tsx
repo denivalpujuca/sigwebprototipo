@@ -31,7 +31,7 @@ export const PedidosCompraPage: React.FC<PedidosCompraProps> = () => {
   const filteredPedidos = useMemo(() => {
     return pedidos.filter(pedido => 
       pedido.empresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pedido.id.toString().includes(searchTerm)
+      pedido.id.toString().includes(searchTerm) || `${String(pedido.id).padStart(6, '0')}/${pedido.data.getFullYear()}`.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [pedidos, searchTerm]);
 
@@ -88,7 +88,7 @@ export const PedidosCompraPage: React.FC<PedidosCompraProps> = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50">
+              <tr className="bg-[#f5f5f5]">
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Pedido</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Empresa</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Data</th>
@@ -106,7 +106,7 @@ export const PedidosCompraPage: React.FC<PedidosCompraProps> = () => {
               ) : (
                 paginatedPedidos.map(pedido => (
                   <tr key={pedido.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-4 text-sm font-bold text-slate-900">#{pedido.id}</td>
+                    <td className="px-4 py-4 text-sm font-bold text-slate-900">{String(pedido.id).padStart(6, '0')}/{pedido.data.getFullYear()}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{pedido.empresa}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{pedido.data.toLocaleDateString('pt-BR')}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{pedido.itens} itens</td>
@@ -127,7 +127,7 @@ export const PedidosCompraPage: React.FC<PedidosCompraProps> = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-slate-50">
+        <div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
           <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedPedidos.length} de {filteredPedidos.length} registros</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">

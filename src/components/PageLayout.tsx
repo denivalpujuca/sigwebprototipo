@@ -72,7 +72,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             </button>
           </div>
         </header>
-        <main className="p-6 overflow-y-auto bg-slate-50 h-full">
+        <main className="p-6 overflow-y-auto bg-white h-full">
           {children}
         </main>
       </div>
