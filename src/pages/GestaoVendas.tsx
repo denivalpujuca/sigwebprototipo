@@ -216,7 +216,7 @@ export const GestaoVendasPage: React.FC = () => {
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center"><DollarSign className="w-5 h-5 text-emerald-600" /></div>
+            <div className="w-9 h-9 rounded-lg bg-[#f5f5f5] flex items-center justify-center"><DollarSign className="w-5 h-5 text-gray-600" /></div>
             <span className="text-xs font-medium text-slate-500">Valor Aprovado</span>
           </div>
           <p className="text-2xl font-extrabold text-emerald-700">{formatarMoeda(stats.aprovados)}</p>
@@ -427,7 +427,7 @@ export const GestaoVendasPage: React.FC = () => {
               </div>
 
               {/* Totais */}
-              <div className="bg-slate-50 rounded-lg p-4 mb-6">
+              <div className="bg-[#f5f5f5] rounded-lg p-4 mb-6">
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between text-slate-600">
                     <span>Subtotal</span>

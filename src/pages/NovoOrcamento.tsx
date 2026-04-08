@@ -49,6 +49,19 @@ const categorias = [
   { id: 'energia', nome: 'Energia', icon: Zap },
 ];
 
+const cidadesExecucao = [
+  { id: 'sao-paulo', nome: 'São Paulo - SP' },
+  { id: 'rio-de-janeiro', nome: 'Rio de Janeiro - RJ' },
+  { id: 'belo-horizonte', nome: 'Belo Horizonte - MG' },
+  { id: 'curitiba', nome: 'Curitiba - PR' },
+  { id: 'brasilia', nome: 'Brasília - DF' },
+  { id: 'salvador', nome: 'Salvador - BA' },
+  { id: 'fortaleza', nome: 'Fortaleza - CE' },
+  { id: 'recife', nome: 'Recife - PE' },
+  { id: 'porto-alegre', nome: 'Porto Alegre - RS' },
+  { id: 'goiania', nome: 'Goiânia - GO' },
+];
+
 const tabelasPreco = [
   { id: 'padrao', nome: 'Tabela Padrão', desconto: 0 },
   { id: 'premium', nome: 'Tabela Premium', desconto: 10 },
@@ -89,6 +102,7 @@ interface NovoOrcamentoProps {
 }
 
 export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSalvar }) => {
+  const [cidadeExecucao, setCidadeExecucao] = useState('');
   const [categoriaSelecionada, setCategoriaSelecionada] = useState('todas');
   const [tabelaSelecionada, setTabelaSelecionada] = useState('padrao');
   const [searchTerm, setSearchTerm] = useState('');
@@ -181,7 +195,7 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
 
   return (
     <>
-      <nav className="flex items-center gap-2 text-xs text-slate-500 mb-4 font-medium tracking-wide">
+      <nav className="flex items-center gap-2 text-xs text-gray-500 mb-4 font-medium tracking-wide">
         <span onClick={onVoltar} className="hover:text-emerald-600 cursor-pointer">Gestão de Orçamentos</span>
         <ChevronRight className="w-3.5 h-3.5" />
         <span className="text-slate-900">Novo Orçamento</span>
@@ -190,7 +204,7 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
       <div className="mb-6 flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 mb-1">Novo Orçamento</h1>
-          <p className="text-slate-500 text-sm">Selecione os serviços e configure o orçamento</p>
+          <p className="text-gray-500 text-sm">Selecione os serviços e configure o orçamento</p>
         </div>
 
         <button
@@ -206,61 +220,78 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
         </button>
       </div>
 
-      <div className="flex gap-6">
+        <div className="flex gap-6">
         {/* Sidebar Esquerda */}
         <div className="w-72 shrink-0 space-y-6">
-          {/* Tabela de Preços */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <h3 className="text-sm font-bold text-slate-900 mb-3">Tabela de Preços</h3>
-            <Select value={tabelaSelecionada} onValueChange={setTabelaSelecionada}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a tabela" />
-              </SelectTrigger>
-              <SelectContent>
-                {tabelasPreco.map(tabela => (
-                  <SelectItem key={tabela.id} value={tabela.id}>
-                    <div className="flex items-center justify-between w-full">
-                      <span>{tabela.nome}</span>
-                      {tabela.desconto > 0 && (
-                        <span className="ml-2 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">
-                          -{tabela.desconto}%
-                        </span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Cidade de Execução + Tabela de Preços + Categoria */}
+          <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 mb-3">Cidade de Execução</h3>
+              <Select value={cidadeExecucao} onValueChange={setCidadeExecucao}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a cidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cidadesExecucao.map(cidade => (
+                    <SelectItem key={cidade.id} value={cidade.id}>
+                      {cidade.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Categoria */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <h3 className="text-sm font-bold text-slate-900 mb-3">Categoria</h3>
-            <Select value={categoriaSelecionada} onValueChange={setCategoriaSelecionada}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categorias.map(cat => {
-                  const Icon = cat.icon;
-                  return (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-slate-500" />
-                        <span>{cat.nome}</span>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 mb-3">Tabela de Preços</h3>
+              <Select value={tabelaSelecionada} onValueChange={setTabelaSelecionada}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a tabela" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tabelasPreco.map(tabela => (
+                    <SelectItem key={tabela.id} value={tabela.id}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>{tabela.nome}</span>
+                        {tabela.desconto > 0 && (
+                          <span className="ml-2 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">
+                            -{tabela.desconto}%
+                          </span>
+                        )}
                       </div>
                     </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="border-t border-slate-200 pt-4">
+              <h3 className="text-sm font-bold text-slate-900 mb-3">Categoria</h3>
+              <Select value={categoriaSelecionada} onValueChange={setCategoriaSelecionada}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categorias.map(cat => {
+                    const Icon = cat.icon;
+                    return (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4 text-gray-500" />
+                          <span>{cat.nome}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Resumo */}
           {totalItens > 0 && (
-            <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-4">
-              <h3 className="text-sm font-bold text-emerald-900 mb-2">Resumo</h3>
-              <div className="space-y-1.5 text-sm text-emerald-700">
+            <div className="bg-[#f5f5f5] rounded-xl border border-gray-200 p-4">
+              <h3 className="text-sm font-bold text-gray-900 mb-2">Resumo</h3>
+              <div className="space-y-1.5 text-sm text-gray-700">
                 <div className="flex justify-between">
                   <span>Itens:</span>
                   <span className="font-semibold">{totalItens}</span>
@@ -294,7 +325,7 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
           {filteredServicos.length === 0 ? (
             <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
               <Search className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500">Nenhum serviço encontrado</p>
+              <p className="text-gray-500">Nenhum serviço encontrado</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -310,7 +341,7 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
                     }`}
                   >
                     {/* Ícone */}
-                    <div className="w-12 h-12 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-lg bg-[#f5f5f5] flex items-center justify-center shrink-0">
                       <Icon className="w-6 h-6 text-emerald-600" />
                     </div>
 
@@ -325,7 +356,7 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-slate-500 truncate">{servico.descricao}</p>
+                      <p className="text-sm text-gray-500 truncate">{servico.descricao}</p>
                     </div>
 
                     {/* Preço */}
@@ -338,7 +369,7 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
                       <p className="text-xl font-extrabold text-slate-900">
                         {formatarMoeda(calcularValor(servico.valorUnitario))}
                       </p>
-                      <p className="text-xs text-slate-500">/{servico.unidade}</p>
+                      <p className="text-xs text-gray-500">/{servico.unidade}</p>
                     </div>
 
                     {/* Botão */}
@@ -384,11 +415,11 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="border-b border-slate-200 p-6 flex items-center gap-3">
               <button onClick={() => setCheckoutAberto(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <ArrowLeft className="w-4 h-4 text-slate-500" />
+                <ArrowLeft className="w-4 h-4 text-gray-500" />
               </button>
               <h2 className="text-lg font-semibold text-slate-900">Finalizar Orçamento</h2>
               <button onClick={() => setCheckoutAberto(false)} className="ml-auto p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-                <X className="w-5 h-5 text-slate-500" />
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
@@ -410,7 +441,7 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
                           <div>
                             <p className="text-sm font-medium text-slate-900">{clientesCadastrados.find(c => c.id === clienteSelecionado)?.nome}</p>
                             {clientesCadastrados.find(c => c.id === clienteSelecionado)?.empresa && (
-                              <p className="text-xs text-slate-500">{clientesCadastrados.find(c => c.id === clienteSelecionado)?.empresa}</p>
+                              <p className="text-xs text-gray-500">{clientesCadastrados.find(c => c.id === clienteSelecionado)?.empresa}</p>
                             )}
                           </div>
                           <ChevronRight className="w-4 h-4 text-slate-400 rotate-90" />
@@ -506,18 +537,18 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
                   </h3>
                   <div className="border border-slate-200 rounded-lg overflow-hidden mb-4 max-h-48 overflow-y-auto">
                     <table className="w-full text-xs">
-                      <thead className="bg-slate-50">
+                      <thead className="bg-[#f5f5f5]">
                         <tr>
-                          <th className="px-3 py-2 text-left font-bold text-slate-500">Serviço</th>
-                          <th className="px-3 py-2 text-center font-bold text-slate-500">Qtd</th>
-                          <th className="px-3 py-2 text-right font-bold text-slate-500">Total</th>
+                          <th className="px-3 py-2 text-left font-bold text-gray-500">Serviço</th>
+                          <th className="px-3 py-2 text-center font-bold text-gray-500">Qtd</th>
+                          <th className="px-3 py-2 text-right font-bold text-gray-500">Total</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {itensCarrinho.map(item => (
                           <tr key={item.servico.id}>
                             <td className="px-3 py-2 font-medium text-slate-900 truncate max-w-[150px]">{item.servico.nome}</td>
-                            <td className="px-3 py-2 text-center text-slate-500">{item.quantidade}</td>
+                            <td className="px-3 py-2 text-center text-gray-500">{item.quantidade}</td>
                             <td className="px-3 py-2 text-right font-semibold text-slate-900">{formatarMoeda(calcularValor(item.servico.valorUnitario) * item.quantidade)}</td>
                           </tr>
                         ))}
@@ -546,7 +577,7 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
                         return (
                           <button key={fp.id} onClick={() => setFormaPagamento(fp.id)} className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg border text-center text-xs transition-colors ${formaPagamento === fp.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-emerald-300'}`}>
                             <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${formaPagamento === fp.id ? 'bg-emerald-100' : 'bg-slate-100'}`}>
-                              <Icon className={`w-3.5 h-3.5 ${formaPagamento === fp.id ? 'text-emerald-600' : 'text-slate-500'}`} />
+                              <Icon className={`w-3.5 h-3.5 ${formaPagamento === fp.id ? 'text-emerald-600' : 'text-gray-500'}`} />
                             </div>
                             <span className={`font-medium leading-tight text-[10px] ${formaPagamento === fp.id ? 'text-emerald-700' : 'text-slate-700'}`}>{fp.nome}</span>
                           </button>
@@ -562,7 +593,7 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
                   </div>
 
                   {/* Totais */}
-                  <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="bg-[#f5f5f5] rounded-lg p-4">
                     <div className="space-y-1.5 text-sm">
                       <div className="flex justify-between text-slate-600">
                         <span>Subtotal</span>

@@ -397,7 +397,7 @@ export const CatalogoServicosPage: React.FC = () => {
                     </div>
                     <h3 className="text-lg font-bold text-slate-900 mb-2">Pedido #{Date.now().toString().slice(-6)}</h3>
                     <p className="text-sm text-slate-500 text-center mb-6">Seu pedido foi recebido com sucesso. Entraremos em contato em breve.</p>
-                    <div className="bg-slate-50 rounded-lg p-4 w-full mb-6">
+                    <div className="bg-[#f5f5f5] rounded-lg p-4 w-full mb-6">
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-slate-500">Cliente:</span>
@@ -528,7 +528,7 @@ export const CatalogoServicosPage: React.FC = () => {
                       </div>
                     </div>
                     {/* Resumo */}
-                    <div className="bg-slate-50 rounded-lg p-4">
+                    <div className="bg-[#f5f5f5] rounded-lg p-4">
                       <h3 className="text-sm font-bold text-slate-900 mb-3">Resumo</h3>
                       <div className="space-y-1.5 text-sm">
                         {itensCarrinho.map(item => (
@@ -706,7 +706,7 @@ export const CatalogoServicosPage: React.FC = () => {
                     }`}
                   >
                     {/* Ícone */}
-                    <div className="w-12 h-12 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-lg bg-[#f5f5f5] flex items-center justify-center shrink-0">
                       <Icon className="w-6 h-6 text-emerald-600" />
                     </div>
 
