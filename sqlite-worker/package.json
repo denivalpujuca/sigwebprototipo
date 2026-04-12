@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev"
+    "deploy": "npm install --prefix sigweb-api && npm run deploy --prefix sigweb-api",
+    "dev": "npm run dev --prefix sigweb-api"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20241127.0",

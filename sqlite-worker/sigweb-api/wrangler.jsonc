@@ -1,8 +1,15 @@
 {
-	"name": "<WORKER_NAME>",
+	"name": "sigweb-api",
 	"main": "src/index.ts",
-	"compatibility_date": "<COMPATIBILITY_DATE>",
+	"compatibility_date": "2025-04-01",
 	"observability": {
 		"enabled": true,
 	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "sigweb-db",
+			"database_id": "dc5c8be6-7821-466c-98ce-2c5d62f16e7d",
+		},
+	],
 }

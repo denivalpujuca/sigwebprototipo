@@ -1,149 +1,209 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { api } from '../lib/api';
+import { formatDbDate } from '../lib/d1Utils';
 
 interface Conta {
-  id: number;
-  descricao: string;
-  fornecedor: string;
-  valor: number;
-  dataVencimento: string;
-  status: 'pendente' | 'pago' | 'atrasado';
+	id: number;
+	descricao: string;
+	fornecedor: string;
+	valor: number;
+	dataVencimento: string;
+	status: 'pendente' | 'pago' | 'atrasado';
 }
 
-const initialContas: Conta[] = [
-  { id: 1, descricao: 'Serviços deTI', fornecedor: 'Tech Solutions', valor: 5000, dataVencimento: '2026-04-15', status: 'pendente' },
-  { id: 2, descricao: 'Aluguel', fornecedor: 'Imóveis ABC', valor: 10000, dataVencimento: '2026-04-01', status: 'pago' },
-];
+function mapConta(r: Record<string, unknown>): Conta {
+	const st = String(r.status ?? 'pendente');
+	return {
+		id: Number(r.id),
+		descricao: String(r.descricao ?? ''),
+		fornecedor: String(r.fornecedor ?? ''),
+		valor: Number(r.valor ?? 0),
+		dataVencimento: String(r.data_vencimento ?? '').slice(0, 10),
+		status: st === 'pago' || st === 'atrasado' ? st : 'pendente',
+	};
+}
 
 interface ContasPagarProps {
-  activeSection?: string;
-  onSectionChange?: (section: string) => void;
+	activeSection?: string;
+	onSectionChange?: (section: string) => void;
 }
 
 export const ContasPagarPage: React.FC<ContasPagarProps> = () => {
-  const [contas, setContas] = useState<Conta[]>(initialContas);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+	const [contas, setContas] = useState<Conta[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState<string | null>(null);
 
-  const filteredContas = useMemo(() => {
-    return contas.filter(conta => 
-      conta.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      conta.fornecedor.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [contas, searchTerm]);
+	const load = useCallback(async () => {
+		setLoading(true);
+		setLoadError(null);
+		try {
+			const raw = await api.list<Record<string, unknown>>('contas_pagar');
+			setContas(raw.map(mapConta));
+		} catch (e) {
+			setLoadError(e instanceof Error ? e.message : 'Erro ao carregar contas');
+			setContas([]);
+		} finally {
+			setLoading(false);
+		}
+	}, []);
 
-  const paginatedContas = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredContas.slice(start, start + itemsPerPage);
-  }, [filteredContas, currentPage]);
+	useEffect(() => {
+		void load();
+	}, [load]);
 
-  const totalPages = Math.ceil(filteredContas.length / itemsPerPage);
+	const [searchTerm, setSearchTerm] = useState('');
+	const [currentPage, setCurrentPage] = useState(1);
+	const itemsPerPage = 5;
 
-  const handleToggle = (id: number) => {
-    setContas(prev => prev.map(c => {
-      if (c.id === id) {
-        const statusOrder: Conta['status'][] = ['pendente', 'pago', 'atrasado'];
-        const currentIndex = statusOrder.indexOf(c.status);
-        const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
-        return { ...c, status: nextStatus };
-      }
-      return c;
-    }));
-  };
+	const filteredContas = useMemo(() => {
+		return contas.filter(
+			(c) =>
+				c.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				c.fornecedor.toLowerCase().includes(searchTerm.toLowerCase()),
+		);
+	}, [contas, searchTerm]);
 
-  const content = (
-    <>
-      <nav className="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium tracking-wide">
-        <span className="hover:text-emerald-600 cursor-pointer">Página Inicial</span>
-        <MaterialIcon name="arrow_right" size={14} />
-        <span className="hover:text-emerald-600 cursor-pointer">Financeiro</span>
-        <MaterialIcon name="arrow_right" size={14} />
-        <span className="text-slate-900">Contas a Pagar</span>
-      </nav>
+	const paginatedContas = useMemo(() => {
+		const start = (currentPage - 1) * itemsPerPage;
+		return filteredContas.slice(start, start + itemsPerPage);
+	}, [filteredContas, currentPage]);
 
-      <div className="mb-6">
-        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Contas a Pagar</h1>
-        <p className="text-slate-500 text-sm">Gerenciamento de contas a pagar.</p>
-      </div>
+	const totalPages = Math.ceil(filteredContas.length / itemsPerPage) || 1;
 
-      <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
-        <div className="flex-1 flex gap-2">
-          <div className="relative flex-1">
-            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input
-              type="text"
-              placeholder="Pesquisar conta"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
-            />
-          </div>
-        </div>
-      </div>
+	const handleToggle = async (id: number) => {
+		const c = contas.find((x) => x.id === id);
+		if (!c) return;
+		const order: Conta['status'][] = ['pendente', 'pago', 'atrasado'];
+		const next = order[(order.indexOf(c.status) + 1) % order.length];
+		try {
+			const updated = await api.update<Record<string, unknown>>('contas_pagar', id, {
+				descricao: c.descricao,
+				fornecedor: c.fornecedor,
+				valor: c.valor,
+				data_vencimento: c.dataVencimento,
+				status: next,
+			});
+			setContas((prev) => prev.map((x) => (x.id === id ? mapConta(updated) : x)));
+		} catch (e) {
+			alert(e instanceof Error ? e.message : 'Erro ao atualizar status');
+		}
+	};
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#f5f5f5]">
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Descrição</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Fornecedor</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-right">Valor</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Vencimento</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {paginatedContas.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
-                </tr>
-              ) : (
-                paginatedContas.map(conta => (
-                  <tr key={conta.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-4 text-sm font-semibold text-slate-900">{conta.id}</td>
-                    <td className="px-4 py-4 text-sm font-bold text-slate-900">{conta.descricao}</td>
-                    <td className="px-4 py-4 text-sm text-slate-500">{conta.fornecedor}</td>
-                    <td className="px-4 py-4 text-sm text-right font-medium text-slate-900">R$ {conta.valor.toLocaleString('pt-BR')}</td>
-                    <td className="px-4 py-4 text-sm text-slate-500">{new Date(conta.dataVencimento).toLocaleDateString('pt-BR')}</td>
-                    <td className="px-4 py-4 text-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold capitalize ${conta.status === 'pago' ? 'bg-emerald-100 text-emerald-700' : conta.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-                        {conta.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <button onClick={() => handleToggle(conta.id)} className={`p-1.5 transition-colors ${conta.status === 'pendente' ? 'text-slate-500 hover:text-emerald-600' : 'text-emerald-600 hover:opacity-70'}`}>
-                        <MaterialIcon name={conta.status === 'pendente' ? 'block' : 'check'} size={20} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
-          <span className="text-xs text-slate-500 font-medium">Exibindo {paginatedContas.length} de {filteredContas.length} registros</span>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
-              <MaterialIcon name="arrow_left" size={20} />
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <button key={page} onClick={() => setCurrentPage(page)} className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded ${currentPage === page ? 'bg-emerald-600 text-white' : 'hover:bg-slate-200'}`}>
-                {page}
-              </button>
-            ))}
-            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
-              <MaterialIcon name="arrow_right" size={20} />
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+	const content = (
+		<>
+			<nav className="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium tracking-wide">
+				<span className="hover:text-emerald-600 cursor-pointer">Página Inicial</span>
+				<MaterialIcon name="arrow_right" size={14} />
+				<span className="hover:text-emerald-600 cursor-pointer">Financeiro</span>
+				<MaterialIcon name="arrow_right" size={14} />
+				<span className="text-slate-900">Contas a Pagar</span>
+			</nav>
 
-  return <>{content}</>;
+			<div className="mb-6">
+				<h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>
+					Contas a Pagar
+				</h1>
+				<p className="text-slate-500 text-sm">Gerenciamento de contas a pagar (D1).</p>
+				{loadError && <p className="text-sm text-red-600 mt-2">{loadError}</p>}
+			</div>
+
+			<div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
+				<div className="flex-1 flex gap-2">
+					<div className="relative flex-1">
+						<MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+						<input
+							type="text"
+							placeholder="Pesquisar conta"
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+							className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+						/>
+					</div>
+				</div>
+			</div>
+
+			<div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+				<div className="overflow-x-auto">
+					<table className="w-full text-left border-collapse">
+						<thead>
+							<tr className="bg-[#f5f5f5]">
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Descrição</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Fornecedor</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-right">Valor</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Vencimento</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
+							</tr>
+						</thead>
+						<tbody className="divide-y divide-slate-100">
+							{loading ? (
+								<tr>
+									<td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+										Carregando…
+									</td>
+								</tr>
+							) : paginatedContas.length === 0 ? (
+								<tr>
+									<td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+										Nenhum registro encontrado
+									</td>
+								</tr>
+							) : (
+								paginatedContas.map((conta) => (
+									<tr key={conta.id} className="hover:bg-slate-50 transition-colors">
+										<td className="px-4 py-4 text-sm font-semibold text-slate-900">{conta.id}</td>
+										<td className="px-4 py-4 text-sm font-bold text-slate-900">{conta.descricao}</td>
+										<td className="px-4 py-4 text-sm text-slate-500">{conta.fornecedor}</td>
+										<td className="px-4 py-4 text-sm text-right font-medium text-slate-900">R$ {conta.valor.toLocaleString('pt-BR')}</td>
+										<td className="px-4 py-4 text-sm text-slate-500">{formatDbDate(conta.dataVencimento)}</td>
+										<td className="px-4 py-4 text-center">
+											<span
+												className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold capitalize ${conta.status === 'pago' ? 'bg-emerald-100 text-emerald-700' : conta.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}
+											>
+												{conta.status}
+											</span>
+										</td>
+										<td className="px-4 py-4 text-center">
+											<button
+												onClick={() => void handleToggle(conta.id)}
+												className={`p-1.5 transition-colors ${conta.status === 'pendente' ? 'text-slate-500 hover:text-emerald-600' : 'text-emerald-600 hover:opacity-70'}`}
+											>
+												<MaterialIcon name={conta.status === 'pendente' ? 'block' : 'check'} size={20} />
+											</button>
+										</td>
+									</tr>
+								))
+							)}
+						</tbody>
+					</table>
+				</div>
+				<div className="px-6 py-4 flex items-center justify-between bg-[#f5f5f5]">
+					<span className="text-xs text-slate-500 font-medium">
+						Exibindo {paginatedContas.length} de {filteredContas.length} registros
+					</span>
+					<div className="flex items-center gap-2">
+						<button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+							<MaterialIcon name="arrow_left" size={20} />
+						</button>
+						{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+							<button
+								key={page}
+								onClick={() => setCurrentPage(page)}
+								className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded ${currentPage === page ? 'bg-emerald-600 text-white' : 'hover:bg-slate-200'}`}
+							>
+								{page}
+							</button>
+						))}
+						<button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} className="p-1 rounded hover:bg-slate-200 text-slate-500">
+							<MaterialIcon name="arrow_right" size={20} />
+						</button>
+					</div>
+				</div>
+			</div>
+		</>
+	);
+
+	return <>{content}</>;
 };

@@ -115,9 +115,9 @@ CREATE TABLE IF NOT EXISTS modelos (
   nome TEXT NOT NULL,
   marca_id INTEGER,
   ativo INTEGER DEFAULT 1,
-  FOREIGN KEY (marca_id) REFERENCES marcas(id),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (marca_id) REFERENCES marcas(id)
 );
 
 -- Produtos
@@ -180,9 +180,9 @@ CREATE TABLE IF NOT EXISTS contratos (
   data_inicio TEXT,
   data_fim TEXT,
   status TEXT DEFAULT 'ativo',
-  FOREIGN KEY (cliente_id) REFERENCES clientes(id),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (cliente_id) REFERENCES clientes(id)
 );
 
 -- Orçamentos
@@ -192,9 +192,9 @@ CREATE TABLE IF NOT EXISTS orcamentos (
   data TEXT NOT NULL,
   status TEXT DEFAULT 'aberto',
   valor_total REAL DEFAULT 0,
-  FOREIGN KEY (cliente_id) REFERENCES clientes(id),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (cliente_id) REFERENCES clientes(id)
 );
 
 -- Itens Orçamento
@@ -204,10 +204,10 @@ CREATE TABLE IF NOT EXISTS itens_orcamento (
   servico_id INTEGER,
   quantidade INTEGER DEFAULT 1,
   preco REAL DEFAULT 0,
-  FOREIGN KEY (orcamento_id) REFERENCES orcamentos(id),
-  FOREIGN KEY (servico_id) REFERENCES servicos(id),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (orcamento_id) REFERENCES orcamentos(id),
+  FOREIGN KEY (servico_id) REFERENCES servicos(id)
 );
 
 -- Requisições Compra
@@ -240,9 +240,9 @@ CREATE TABLE IF NOT EXISTS residuos_mtr (
   numero TEXT NOT NULL,
   data TEXT NOT NULL,
   peso REAL DEFAULT 0,
-  FOREIGN KEY (residuo_id) REFERENCES residuos(id),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (residuo_id) REFERENCES residuos(id)
 );
 
 -- Contas Pagar
@@ -275,9 +275,9 @@ CREATE TABLE IF NOT EXISTS permissoes (
   tipo_usuario_id INTEGER,
   modulo TEXT NOT NULL,
   acao TEXT NOT NULL,
-  FOREIGN KEY (tipo_usuario_id) REFERENCES tipos_usuario(id),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (tipo_usuario_id) REFERENCES tipos_usuario(id)
 );
 
 -- Abastecimentos
