@@ -1,0 +1,16 @@
+{
+  "name": "sigweb-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "hono": "^4.6.19"
+  },
+  "devDependencies": {
+    "wrangler": "^4.81.1"
+  }
+}
