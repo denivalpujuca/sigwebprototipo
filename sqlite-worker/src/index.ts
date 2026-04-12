@@ -26,9 +26,12 @@ const TABLES = [
   'contas_pagar', 'contas_receber', 'permissoes', 'abastecimentos', 'auditoria'
 ]
 
-const getTable = (table: string) => {
-  if (!TABLES.includes(table)) {
-    throw new Error(`Invalid table: ${table}`)
+const getTable = async (db: D1Database, table: string) => {
+  const { results } = await db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name = ?"
+  ).bind(table).run()
+  if (!results || results.length === 0) {
+    throw new Error(`no such table: ${table}`)
   }
   return table
 }
@@ -68,7 +71,7 @@ app.get('/api', async (c) => {
 // GET all records
 app.get('/api/:table', async (c) => {
   try {
-    const table = getTable(c.req.param('table'))
+    const table = await getTable(c.env.DB, c.req.param('table'))
     const { results } = await c.env.DB.prepare(`SELECT * FROM ${table} ORDER BY id DESC`).run()
     return c.json({ data: results })
   } catch (e) {
@@ -79,7 +82,7 @@ app.get('/api/:table', async (c) => {
 // GET single record
 app.get('/api/:table/:id', async (c) => {
   try {
-    const table = getTable(c.req.param('table'))
+    const table = await getTable(c.env.DB, c.req.param('table'))
     const id = c.req.param('id')
     const { results } = await c.env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(id).run()
     return c.json({ data: results[0] || null })
@@ -91,7 +94,7 @@ app.get('/api/:table/:id', async (c) => {
 // POST create record
 app.post('/api/:table', async (c) => {
   try {
-    const table = getTable(c.req.param('table'))
+    const table = await getTable(c.env.DB, c.req.param('table'))
     const body = await c.req.json()
     
     const fields = Object.keys(body)
@@ -111,7 +114,7 @@ app.post('/api/:table', async (c) => {
 // PUT update record
 app.put('/api/:table/:id', async (c) => {
   try {
-    const table = getTable(c.req.param('table'))
+    const table = await getTable(c.env.DB, c.req.param('table'))
     const id = c.req.param('id')
     const body = await c.req.json()
     
@@ -131,7 +134,7 @@ app.put('/api/:table/:id', async (c) => {
 // DELETE record
 app.delete('/api/:table/:id', async (c) => {
   try {
-    const table = getTable(c.req.param('table'))
+    const table = await getTable(c.env.DB, c.req.param('table'))
     const id = c.req.param('id')
     
     await c.env.DB.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id).run()
@@ -145,7 +148,7 @@ app.delete('/api/:table/:id', async (c) => {
 // SEARCH records
 app.post('/api/:table/search', async (c) => {
   try {
-    const table = getTable(c.req.param('table'))
+    const table = await getTable(c.env.DB, c.req.param('table'))
     const body = await c.req.json()
     const { field, value } = body
     
