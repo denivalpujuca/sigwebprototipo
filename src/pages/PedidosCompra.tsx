@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { api } from '../lib/api';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Pedido {
   id: number;
@@ -11,22 +13,49 @@ interface Pedido {
   status: 'pendente' | 'aprovado' | 'rejeitado';
 }
 
-const initialPedidos: Pedido[] = [
-  { id: 1001, empresa: 'Gestão Urbana S/A', cnpj: '12.345.678/0001-90', data: new Date('2026-03-15'), itens: 3, total: 450, status: 'pendente' },
-  { id: 1002, empresa: 'Serviços Metropolitanos Ltda', cnpj: '23.456.789/0001-01', data: new Date('2026-03-14'), itens: 2, total: 1200, status: 'aprovado' },
-  { id: 1003, empresa: 'Ambiental Norte S/A', cnpj: '34.567.890/0001-12', data: new Date('2026-03-13'), itens: 3, total: 850, status: 'rejeitado' },
-];
+function mapPedido(r: Record<string, unknown>): Pedido {
+  return {
+    id: Number(r.id),
+    empresa: String(r.empresa ?? ''),
+    cnpj: String(r.cnpj ?? ''),
+    data: r.data ? new Date(String(r.data)) : new Date(),
+    itens: Number(r.itens ?? 0),
+    total: Number(r.total ?? 0),
+    status: (String(r.status ?? 'pendente') as Pedido['status']),
+  };
+}
 
 interface PedidosCompraProps {
   activeSection?: string;
   onSectionChange?: (section: string) => void;
 }
 
-export const PedidosCompraPage: React.FC<PedidosCompraProps> = () => {
-  const [pedidos, setPedidos] = useState<Pedido[]>(initialPedidos);
+export const PedidosCompraPage: React.FC = () => {
+  const { toast } = useAppFeedback();
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const raw = await api.list<Record<string, unknown>>('pedidos_compra');
+      setPedidos(raw.map(mapPedido));
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'Erro ao carregar pedidos');
+      setPedidos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const filteredPedidos = useMemo(() => {
     return pedidos.filter(pedido => 
@@ -42,16 +71,19 @@ export const PedidosCompraPage: React.FC<PedidosCompraProps> = () => {
 
   const totalPages = Math.ceil(filteredPedidos.length / itemsPerPage);
 
-  const handleToggle = (id: number) => {
-    setPedidos(prev => prev.map(p => {
-      if (p.id === id) {
-        const statusOrder: Pedido['status'][] = ['pendente', 'aprovado', 'rejeitado'];
-        const currentIndex = statusOrder.indexOf(p.status);
-        const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
-        return { ...p, status: nextStatus };
-      }
-      return p;
-    }));
+  const handleToggle = async (id: number) => {
+    const p = pedidos.find(x => x.id === id);
+    if (!p) return;
+    const statusOrder: Pedido['status'][] = ['pendente', 'aprovado', 'rejeitado'];
+    const currentIndex = statusOrder.indexOf(p.status);
+    const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
+    try {
+      const updated = await api.update<Record<string, unknown>>('pedidos_compra', id, { status: nextStatus });
+      setPedidos(prev => prev.map(x => x.id === id ? mapPedido(updated) : x));
+      toast.success('Status atualizado.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+    }
   };
 
   const content = (
@@ -67,6 +99,7 @@ export const PedidosCompraPage: React.FC<PedidosCompraProps> = () => {
       <div className="mb-6">
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Pedidos de Compra</h1>
         <p className="text-slate-500 text-sm">Gerencie e acompanhe os pedidos de compra realizados.</p>
+        {loadError && <p className="text-sm text-red-600 mt-2">{loadError}</p>}
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
@@ -99,7 +132,11 @@ export const PedidosCompraPage: React.FC<PedidosCompraProps> = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedPedidos.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">Carregando...</td>
+                </tr>
+              ) : paginatedPedidos.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
                 </tr>

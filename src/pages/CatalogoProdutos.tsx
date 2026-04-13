@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   ShoppingCart,
   Search,
@@ -22,6 +22,9 @@ import {
   FileText,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { api } from '../lib/api';
+import { ativoFromDb } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Produto {
   id: number;
@@ -32,6 +35,19 @@ interface Produto {
   unidade: string;
   ativo: boolean;
   popular?: boolean;
+}
+
+function mapProduto(r: Record<string, unknown>): Produto {
+  return {
+    id: Number(r.id),
+    nome: String(r.nome ?? ''),
+    descricao: String(r.descricao ?? ''),
+    categoria: String(r.categoria ?? ''),
+    precoUnitario: Number(r.preco_unitario ?? r.precoUnitario ?? 0),
+    unidade: String(r.unidade ?? ''),
+    ativo: ativoFromDb(r.ativo),
+    popular: Boolean(r.popular),
+  };
 }
 
 const categorias = [
@@ -58,21 +74,6 @@ const formasPagamento = [
   { id: 'transferencia', nome: 'Transferência', icon: Receipt, parcelas: 'À vista' },
 ];
 
-const produtosDisponiveis: Produto[] = [
-  { id: 1, nome: 'Resma de Papel A4', descricao: 'Papel sulfite A4 75g/m² com 500 folhas', categoria: 'escritorio', precoUnitario: 25, unidade: 'resma', ativo: true, popular: true },
-  { id: 2, nome: 'Caneta Esferográfica', descricao: 'Caneta esferográfica azul com ponta média', categoria: 'escritorio', precoUnitario: 3, unidade: 'unidade', ativo: true },
-  { id: 3, nome: 'Detergente Neutro', descricao: 'Detergente neutro concentrado 500ml', categoria: 'limpeza', precoUnitario: 4, unidade: 'unidade', ativo: true },
-  { id: 4, nome: 'Água Sanitária', descricao: 'Água sanitária 1L concentrada', categoria: 'limpeza', precoUnitario: 6, unidade: 'unidade', ativo: true, popular: true },
-  { id: 5, nome: 'Mouse USB', descricao: 'Mouse óptico USB com fio 1200 DPI', categoria: 'informatica', precoUnitario: 35, unidade: 'unidade', ativo: true },
-  { id: 6, nome: 'Teclado ABNT2', descricao: 'Teclado USB padrão ABNT2 com fio', categoria: 'informatica', precoUnitario: 55, unidade: 'unidade', ativo: true },
-  { id: 7, nome: 'Fio Elétrico 2.5mm', descricao: 'Fio flexível anti-chama 2.5mm² rolo 100m', categoria: 'eletrico', precoUnitario: 180, unidade: 'rolo', ativo: true },
-  { id: 8, nome: 'Disjuntor 20A', descricao: 'Disjuntor unipolar 20A DIN', categoria: 'eletrico', precoUnitario: 15, unidade: 'unidade', ativo: true },
-  { id: 9, nome: 'Tubo PVC 100mm', descricao: 'Tubo de PVC esgoto 100mm 6 metros', categoria: 'hidraulico', precoUnitario: 45, unidade: 'barra', ativo: true },
-  { id: 10, nome: 'Registro de Gaveta', descricao: 'Registro de gaveta 3/4 polegadas', categoria: 'hidraulico', precoUnitario: 28, unidade: 'unidade', ativo: true },
-  { id: 11, nome: 'Cimento CP-II', descricao: 'Cimento Portland composto 50kg', categoria: 'construcao', precoUnitario: 38, unidade: 'saco', ativo: true, popular: true },
-  { id: 12, nome: 'Tijolo Cerâmico', descricao: 'Tijolo cerâmico 8 furos 19x19x29cm', categoria: 'construcao', precoUnitario: 1.2, unidade: 'milheiro', ativo: true },
-];
-
 interface CartItem {
   produto: Produto;
   quantidade: number;
@@ -84,6 +85,25 @@ interface NovoPedidoProps {
 }
 
 export const CatalogoProdutosPage: React.FC<NovoPedidoProps> = ({ onVoltar, onSalvar }) => {
+  const { toast } = useAppFeedback();
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const raw = await api.list<Record<string, unknown>>('produtos');
+      setProdutos(raw.map(mapProduto));
+    } catch (e) {
+      setProdutos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
   const [categoriaSelecionada, setCategoriaSelecionada] = useState('todas');
   const [tabelaSelecionada, setTabelaSelecionada] = useState('padrao');
   const [searchTerm, setSearchTerm] = useState('');
@@ -103,13 +123,25 @@ export const CatalogoProdutosPage: React.FC<NovoPedidoProps> = ({ onVoltar, onSa
   const [formaPagamento, setFormaPagamento] = useState('');
   const [observacoes, setObservacoes] = useState('');
 
-  const clientesCadastrados = [
-    { id: 1, nome: 'Transportadora Silva LTDA', email: 'contato@silva.com.br', telefone: '(11) 98765-4321', empresa: 'Silva Transportes' },
-    { id: 2, nome: 'João Oliveira', email: 'joao@email.com', telefone: '(21) 97654-3210', empresa: '' },
-    { id: 3, nome: 'LogTech Logística S/A', email: 'compras@logtech.com', telefone: '(31) 96543-2109', empresa: 'LogTech' },
-    { id: 4, nome: 'Maria Santos', email: 'maria.santos@email.com', telefone: '(41) 95432-1098', empresa: '' },
-    { id: 5, nome: 'Construtora Horizonte', email: 'financeiro@horizonte.com', telefone: '(51) 94321-0987', empresa: 'Horizonte Constr.' },
-  ];
+  const [clientesCadastrados, setClientesCadastrados] = useState<{ id: number; nome: string; email: string; telefone: string; empresa: string }[]>([]);
+
+  useEffect(() => {
+    const loadClientes = async () => {
+      try {
+        const raw = await api.list<Record<string, unknown>>('clientes');
+        setClientesCadastrados(raw.map(r => ({
+          id: Number(r.id),
+          nome: String(r.nome ?? ''),
+          email: String(r.email ?? ''),
+          telefone: String(r.telefone ?? ''),
+          empresa: String(r.empresa ?? ''),
+        })));
+      } catch (e) {
+        setClientesCadastrados([]);
+      }
+    };
+    loadClientes();
+  }, []);
 
   const clientesFiltrados = useMemo(() => {
     if (!buscaCliente) return clientesCadastrados;
@@ -117,7 +149,7 @@ export const CatalogoProdutosPage: React.FC<NovoPedidoProps> = ({ onVoltar, onSa
       c.nome.toLowerCase().includes(buscaCliente.toLowerCase()) ||
       c.empresa.toLowerCase().includes(buscaCliente.toLowerCase())
     );
-  }, [buscaCliente]);
+  }, [clientesCadastrados, buscaCliente]);
 
   const selecionarCliente = (cliente: typeof clientesCadastrados[0]) => {
     setClienteSelecionado(cliente.id);
@@ -138,7 +170,7 @@ export const CatalogoProdutosPage: React.FC<NovoPedidoProps> = ({ onVoltar, onSa
   }, [dropdownAberto]);
 
   const filteredProdutos = useMemo(() => {
-    return produtosDisponiveis
+    return produtos
       .filter(produto => {
         const matchCategoria = categoriaSelecionada === 'todas' || produto.categoria === categoriaSelecionada;
         const matchSearch = produto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -146,7 +178,7 @@ export const CatalogoProdutosPage: React.FC<NovoPedidoProps> = ({ onVoltar, onSa
         return matchCategoria && matchSearch;
       })
       .sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [categoriaSelecionada, searchTerm]);
+  }, [produtos, categoriaSelecionada, searchTerm]);
 
   const tabelaAtual = tabelasPreco.find(t => t.id === tabelaSelecionada)!;
 
@@ -163,7 +195,7 @@ export const CatalogoProdutosPage: React.FC<NovoPedidoProps> = ({ onVoltar, onSa
   };
 
   const itensCarrinho: CartItem[] = Object.entries(carrinho).map(([id, quantidade]) => ({
-    produto: produtosDisponiveis.find(p => p.id === Number(id))!,
+    produto: produtos.find(p => p.id === Number(id))!,
     quantidade,
   })).filter(item => item.produto);
 
@@ -237,8 +269,8 @@ export const CatalogoProdutosPage: React.FC<NovoPedidoProps> = ({ onVoltar, onSa
               {categorias.map(cat => {
                 const Icon = cat.icon;
                 const count = cat.id === 'todas'
-                  ? produtosDisponiveis.filter(p => p.ativo).length
-                  : produtosDisponiveis.filter(p => p.categoria === cat.id && p.ativo).length;
+                  ? produtos.filter(p => p.ativo).length
+                  : produtos.filter(p => p.categoria === cat.id && p.ativo).length;
                 return (
                   <button
                     key={cat.id}

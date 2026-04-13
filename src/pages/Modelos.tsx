@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { api } from '../lib/api';
 import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface MarcaOpt {
 	id: number;
@@ -35,6 +36,7 @@ interface ModelosPageProps {
 }
 
 export const ModelosPage: React.FC<ModelosPageProps> = () => {
+	const { toast, confirm } = useAppFeedback();
 	const [modelos, setModelos] = useState<Modelo[]>([]);
 	const [marcasOpts, setMarcasOpts] = useState<MarcaOpt[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -86,11 +88,11 @@ export const ModelosPage: React.FC<ModelosPageProps> = () => {
 
 	const handleSave = async () => {
 		if (!formData.nome.trim()) {
-			alert('Preencha o nome do modelo');
+			toast.error('Preencha o nome do modelo');
 			return;
 		}
 		if (!formData.marcaId) {
-			alert('Selecione uma marca');
+			toast.error('Selecione uma marca');
 			return;
 		}
 		try {
@@ -114,8 +116,9 @@ export const ModelosPage: React.FC<ModelosPageProps> = () => {
 			setIsModalOpen(false);
 			setEditingModelo(null);
 			setFormData({ marcaId: marcasOpts[0]?.id ?? 0, nome: '' });
+			toast.success(editingModelo ? 'Modelo atualizado com sucesso.' : 'Modelo cadastrado com sucesso.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao salvar modelo');
+			toast.error(e instanceof Error ? e.message : 'Erro ao salvar modelo');
 		}
 	};
 
@@ -132,8 +135,24 @@ export const ModelosPage: React.FC<ModelosPageProps> = () => {
 			const updated = await api.update<Record<string, unknown>>('modelos', id, { ativo: ativoToDb(!m.ativo) });
 			const marcasById = new Map(marcasOpts.map((x) => [x.id, x.nome]));
 			setModelos((prev) => prev.map((x) => (x.id === id ? mapModelo(updated, marcasById) : x)));
+			toast.success('Status do modelo atualizado.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao atualizar');
+			toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+		}
+	};
+
+	const handleDelete = async (id: number) => {
+		const ok = await confirm({
+			title: 'Excluir modelo?',
+			description: 'Deseja realmente excluir este registro? Esta ação não pode ser desfeita.',
+		});
+		if (!ok) return;
+		try {
+			await api.delete('modelos', id);
+			setModelos((prev) => prev.filter((x) => x.id !== id));
+			toast.destructive('Modelo excluído.');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
 		}
 	};
 
@@ -228,6 +247,14 @@ export const ModelosPage: React.FC<ModelosPageProps> = () => {
 													className={`p-1.5 transition-colors ${modelo.ativo ? 'text-slate-500 hover:text-red-600' : 'text-emerald-600 hover:opacity-70'}`}
 												>
 													<MaterialIcon name={modelo.ativo ? 'block' : 'check'} size={20} />
+												</button>
+												<button
+													type="button"
+													onClick={() => void handleDelete(modelo.id)}
+													className="p-1.5 text-slate-500 hover:text-red-600 transition-colors"
+													title="Excluir"
+												>
+													<MaterialIcon name="delete" size={20} />
 												</button>
 											</div>
 										</td>

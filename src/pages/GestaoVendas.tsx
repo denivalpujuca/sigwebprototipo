@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Search,
   Plus,
@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
+import { api } from '../lib/api';
 
 interface ItemOrcamento {
   servico: string;
@@ -46,62 +48,55 @@ interface Orcamento {
   formaPagamento?: string;
 }
 
-const initialOrcamentos: Orcamento[] = [
-  {
-    id: 1, numero: 'ORC-000001/2026', cliente: 'João Silva', email: 'joao@email.com', telefone: '(11) 98765-4321', empresa: 'Silva Transportes',
-    dataCriacao: new Date('2026-04-01'), dataValidade: new Date('2026-04-30'),
-    itens: [
-      { servico: 'Frete Rodoviário', quantidade: 5, valorUnitario: 1500 },
-      { servico: 'Seguro de Cargas', quantidade: 1, valorUnitario: 5000 },
-    ],
-    subtotal: 12500, desconto: 500, total: 12000,
-    status: 'enviado', observacoes: 'Pagamento em até 30 dias.'
-  },
-  {
-    id: 2, numero: 'ORC-000002/2026', cliente: 'Maria Santos', email: 'maria@email.com', telefone: '(21) 97654-3210', empresa: 'LogTech Logística',
-    dataCriacao: new Date('2026-04-03'), dataValidade: new Date('2026-05-03'),
-    itens: [
-      { servico: 'Manutenção Preventiva', quantidade: 3, valorUnitario: 350 },
-      { servico: 'Troca de Pneus', quantidade: 8, valorUnitario: 180 },
-    ],
-    subtotal: 2490, desconto: 0, total: 2490,
-    status: 'aprovado', observacoes: ''
-  },
-  {
-    id: 3, numero: 'ORC-000003/2026', cliente: 'Carlos Oliveira', email: 'carlos@horizonte.com', telefone: '(31) 96543-2109', empresa: 'Construtora Horizonte',
-    dataCriacao: new Date('2026-04-05'), dataValidade: new Date('2026-04-20'),
-    itens: [
-      { servico: 'Locação de Retroescavadeira', quantidade: 10, valorUnitario: 800 },
-      { servico: 'Locação de Gerador', quantidade: 5, valorUnitario: 350 },
-    ],
-    subtotal: 9750, desconto: 750, total: 9000,
-    status: 'rascunho', observacoes: 'Desconto de 10% aplicado por volume.'
-  },
-  {
-    id: 4, numero: 'ORC-000004/2026', cliente: 'Ana Costa', email: 'ana@email.com', telefone: '(41) 95432-1098', empresa: 'Ambiental Norte',
-    dataCriacao: new Date('2026-03-15'), dataValidade: new Date('2026-04-15'),
-    itens: [
-      { servico: 'Limpeza Industrial', quantidade: 2, valorUnitario: 600 },
-    ],
-    subtotal: 1200, desconto: 0, total: 1200,
-    status: 'expirado', observacoes: ''
-  },
-  {
-    id: 5, numero: 'ORC-000005/2026', cliente: 'Roberto Lima', email: 'roberto@email.com', telefone: '(51) 94321-0987', empresa: 'Transportadora ABC',
-    dataCriacao: new Date('2026-04-06'), dataValidade: new Date('2026-05-06'),
-    itens: [
-      { servico: 'Pintura Veicular', quantidade: 4, valorUnitario: 1200 },
-      { servico: 'Manutenção Preventiva', quantidade: 2, valorUnitario: 350 },
-      { servico: 'Instalação Elétrica', quantidade: 1, valorUnitario: 450 },
-    ],
-    subtotal: 5950, desconto: 450, total: 5500,
-    status: 'enviado', observacoes: 'Incluso garantia de 6 meses.'
-  },
-];
+function mapOrcamento(r: Record<string, unknown>): Orcamento {
+  return {
+    id: Number(r.id),
+    numero: String(r.numero ?? ''),
+    cliente: String(r.cliente ?? ''),
+    email: String(r.email ?? ''),
+    telefone: String(r.telefone ?? ''),
+    empresa: String(r.empresa ?? ''),
+    dataCriacao: r.data_criacao ? new Date(String(r.data_criacao)) : new Date(),
+    dataValidade: r.data_validade ? new Date(String(r.data_validade)) : new Date(),
+    itens: typeof r.itens === 'string' ? JSON.parse(r.itens) : (r.itens as ItemOrcamento[] || []),
+    subtotal: Number(r.subtotal ?? 0),
+    desconto: Number(r.desconto ?? 0),
+    total: Number(r.total ?? 0),
+    status: (String(r.status ?? 'rascunho') as Orcamento['status']),
+    observacoes: String(r.observacoes ?? ''),
+    tabelaPreco: String(r.tabela_preco ?? r.tabelaPreco ?? ''),
+    formaPagamento: String(r.forma_pagamento ?? r.formaPagamento ?? ''),
+  };
+}
 
 export const GestaoVendasPage: React.FC = () => {
   const navigate = useNavigate();
-  const [orcamentos, setOrcamentos] = useState<Orcamento[]>(initialOrcamentos);
+  const { toast, confirm } = useAppFeedback();
+  const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('todos');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [modalDetalhes, setModalDetalhes] = useState<Orcamento | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const raw = await api.list<Record<string, unknown>>('orcamentos');
+      setOrcamentos(raw.map(mapOrcamento));
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'Erro ao carregar orçamentos');
+      setOrcamentos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   useEffect(() => {
     const handleOrcamentoSalvo = () => {
@@ -136,10 +131,6 @@ export const GestaoVendasPage: React.FC = () => {
     window.addEventListener('orcamentoSalvo', handleOrcamentoSalvo);
     return () => window.removeEventListener('orcamentoSalvo', handleOrcamentoSalvo);
   }, [orcamentos]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('todos');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [modalDetalhes, setModalDetalhes] = useState<Orcamento | null>(null);
 
   const itemsPerPage = 5;
 
@@ -179,14 +170,31 @@ export const GestaoVendasPage: React.FC = () => {
     convertido: { label: 'Convertido', bg: 'bg-purple-100', text: 'text-purple-700', icon: TrendingUp },
   };
 
-  const handleDelete = (id: number) => {
-    setOrcamentos(prev => prev.filter(o => o.id !== id));
+  const handleDelete = async (id: number) => {
+    const ok = await confirm({
+      title: 'Excluir orçamento?',
+      description: 'Deseja realmente excluir este registro? Esta ação não pode ser desfeita.',
+    });
+    if (!ok) return;
+    try {
+      await api.delete('orcamentos', id);
+      setOrcamentos((prev) => prev.filter((o) => o.id !== id));
+      toast.destructive('Orçamento excluído.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
+    }
   };
 
-  const handleChangeStatus = (id: number, newStatus: Orcamento['status']) => {
-    setOrcamentos(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
-    if (modalDetalhes && modalDetalhes.id === id) {
-      setModalDetalhes(prev => prev ? { ...prev, status: newStatus } : null);
+  const handleChangeStatus = async (id: number, newStatus: Orcamento['status']) => {
+    try {
+      const updated = await api.update<Record<string, unknown>>('orcamentos', id, { status: newStatus });
+      setOrcamentos(prev => prev.map(o => o.id === id ? mapOrcamento(updated) : o));
+      if (modalDetalhes && modalDetalhes.id === id) {
+        setModalDetalhes(prev => prev ? mapOrcamento(updated) : null);
+      }
+      toast.success('Status atualizado.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
     }
   };
 
@@ -203,6 +211,7 @@ export const GestaoVendasPage: React.FC = () => {
       <div className="mb-6">
         <h1 className="text-3xl font-extrabold text-slate-900 mb-1">Gestão de Orçamentos</h1>
         <p className="text-slate-500 text-sm">Gerencie orçamentos e acompanhe o funil de vendas</p>
+        {loadError && <p className="text-sm text-red-600 mt-2">{loadError}</p>}
       </div>
 
       {/* Cards de Estatísticas */}
@@ -290,7 +299,9 @@ export const GestaoVendasPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedOrcamentos.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">Carregando...</td></tr>
+              ) : paginatedOrcamentos.length === 0 ? (
                 <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">Nenhum orçamento encontrado</td></tr>
               ) : (
                 paginatedOrcamentos.map(orc => {
@@ -319,7 +330,7 @@ export const GestaoVendasPage: React.FC = () => {
                           <button onClick={() => navigate('/gestao-vendas/novo-orcamento')} className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-amber-600 transition-colors" title="Novo">
                             <Edit className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleDelete(orc.id)} className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-red-600 transition-colors" title="Excluir">
+                          <button type="button" onClick={() => void handleDelete(orc.id)} className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-red-600 transition-colors" title="Excluir">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>

@@ -3,6 +3,7 @@ import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { api } from '../lib/api';
 import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Servico {
 	id: number;
@@ -28,6 +29,7 @@ interface ServicosProps {
 }
 
 export const ServicosPage: React.FC<ServicosProps> = () => {
+	const { toast, confirm } = useAppFeedback();
 	const [servicos, setServicos] = useState<Servico[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -88,8 +90,9 @@ export const ServicosPage: React.FC<ServicosProps> = () => {
 			setIsModalOpen(false);
 			setEditingServico(null);
 			setFormData({ nome: '', descricao: '', preco: 0 });
+			toast.success(editingServico ? 'Serviço atualizado com sucesso.' : 'Serviço cadastrado com sucesso.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao salvar');
+			toast.error(e instanceof Error ? e.message : 'Erro ao salvar');
 		}
 	};
 
@@ -105,8 +108,24 @@ export const ServicosPage: React.FC<ServicosProps> = () => {
 		try {
 			const updated = await api.update<Record<string, unknown>>('servicos', id, { ativo: ativoToDb(!s.ativo) });
 			setServicos((prev) => prev.map((x) => (x.id === id ? mapServico(updated) : x)));
+			toast.success('Status do serviço atualizado.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao atualizar');
+			toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+		}
+	};
+
+	const handleDelete = async (id: number) => {
+		const ok = await confirm({
+			title: 'Excluir serviço?',
+			description: 'Deseja realmente excluir este registro? Esta ação não pode ser desfeita.',
+		});
+		if (!ok) return;
+		try {
+			await api.delete('servicos', id);
+			setServicos((prev) => prev.filter((x) => x.id !== id));
+			toast.destructive('Serviço excluído.');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
 		}
 	};
 
@@ -205,6 +224,14 @@ export const ServicosPage: React.FC<ServicosProps> = () => {
 													className={`p-1.5 transition-colors ${servico.ativo ? 'text-slate-500 hover:text-red-600' : 'text-emerald-600 hover:opacity-70'}`}
 												>
 													<MaterialIcon name={servico.ativo ? 'block' : 'check'} size={20} />
+												</button>
+												<button
+													type="button"
+													onClick={() => void handleDelete(servico.id)}
+													className="p-1.5 text-slate-500 hover:text-red-600 transition-colors"
+													title="Excluir"
+												>
+													<MaterialIcon name="delete" size={20} />
 												</button>
 											</div>
 										</td>

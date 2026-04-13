@@ -117,18 +117,7 @@ const menuItens: NavItem[] = [
 export const AppSidebar: React.FC = () => {
   const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem('sidebarOpenGroups');
-    return saved ? JSON.parse(saved) : {
-      administrativo: true,
-      compras: true,
-      financeiro: true,
-      frota: true,
-      'gente-gestao': true,
-      oficina: true,
-      residuos: true,
-      suprimentos: true,
-      ti: true,
-      vendas: true,
-    };
+    return saved ? JSON.parse(saved) : {};
   });
 
   const toggleGroup = (groupId: string) => {

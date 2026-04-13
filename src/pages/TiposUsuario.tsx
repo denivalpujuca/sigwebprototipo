@@ -3,6 +3,7 @@ import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { api } from '../lib/api';
 import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface TipoUsuario {
 	id: number;
@@ -24,6 +25,7 @@ interface TiposUsuarioProps {
 }
 
 export const TiposUsuarioPage: React.FC<TiposUsuarioProps> = () => {
+	const { toast, confirm } = useAppFeedback();
 	const [tipos, setTipos] = useState<TipoUsuario[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -79,8 +81,9 @@ export const TiposUsuarioPage: React.FC<TiposUsuarioProps> = () => {
 			setIsModalOpen(false);
 			setEditingTipo(null);
 			setFormData({ nome: '' });
+			toast.success(editingTipo ? 'Tipo de usuário atualizado com sucesso.' : 'Tipo de usuário cadastrado com sucesso.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao salvar tipo');
+			toast.error(e instanceof Error ? e.message : 'Erro ao salvar tipo');
 		}
 	};
 
@@ -96,8 +99,24 @@ export const TiposUsuarioPage: React.FC<TiposUsuarioProps> = () => {
 		try {
 			const updated = await api.update<Record<string, unknown>>('tipos_usuario', id, { ativo: ativoToDb(!t.ativo) });
 			setTipos((prev) => prev.map((x) => (x.id === id ? mapTipoUsuario(updated) : x)));
+			toast.success('Status do tipo atualizado.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao atualizar');
+			toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+		}
+	};
+
+	const handleDelete = async (id: number) => {
+		const ok = await confirm({
+			title: 'Excluir tipo de usuário?',
+			description: 'Deseja realmente excluir este registro? Esta ação não pode ser desfeita.',
+		});
+		if (!ok) return;
+		try {
+			await api.delete('tipos_usuario', id);
+			setTipos((prev) => prev.filter((x) => x.id !== id));
+			toast.destructive('Tipo de usuário excluído.');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
 		}
 	};
 
@@ -190,6 +209,14 @@ export const TiposUsuarioPage: React.FC<TiposUsuarioProps> = () => {
 													className={`p-1.5 transition-colors ${tipo.ativo ? 'text-slate-500 hover:text-red-600' : 'text-emerald-600 hover:opacity-70'}`}
 												>
 													<MaterialIcon name={tipo.ativo ? 'block' : 'check'} size={20} />
+												</button>
+												<button
+													type="button"
+													onClick={() => void handleDelete(tipo.id)}
+													className="p-1.5 text-slate-500 hover:text-red-600 transition-colors"
+													title="Excluir"
+												>
+													<MaterialIcon name="delete" size={20} />
 												</button>
 											</div>
 										</td>

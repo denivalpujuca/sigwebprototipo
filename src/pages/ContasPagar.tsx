@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
 import { api } from '../lib/api';
 import { formatDbDate } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Conta {
 	id: number;
@@ -30,6 +31,7 @@ interface ContasPagarProps {
 }
 
 export const ContasPagarPage: React.FC<ContasPagarProps> = () => {
+	const { toast, confirm } = useAppFeedback();
 	const [contas, setContas] = useState<Conta[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -85,8 +87,24 @@ export const ContasPagarPage: React.FC<ContasPagarProps> = () => {
 				status: next,
 			});
 			setContas((prev) => prev.map((x) => (x.id === id ? mapConta(updated) : x)));
+			toast.success('Status da conta atualizado.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao atualizar status');
+			toast.error(e instanceof Error ? e.message : 'Erro ao atualizar status');
+		}
+	};
+
+	const handleDelete = async (id: number) => {
+		const ok = await confirm({
+			title: 'Excluir conta a pagar?',
+			description: 'Deseja realmente excluir este registro? Esta ação não pode ser desfeita.',
+		});
+		if (!ok) return;
+		try {
+			await api.delete('contas_pagar', id);
+			setContas((prev) => prev.filter((x) => x.id !== id));
+			toast.destructive('Conta a pagar excluída.');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
 		}
 	};
 
@@ -166,12 +184,23 @@ export const ContasPagarPage: React.FC<ContasPagarProps> = () => {
 											</span>
 										</td>
 										<td className="px-4 py-4 text-center">
-											<button
-												onClick={() => void handleToggle(conta.id)}
-												className={`p-1.5 transition-colors ${conta.status === 'pendente' ? 'text-slate-500 hover:text-emerald-600' : 'text-emerald-600 hover:opacity-70'}`}
-											>
-												<MaterialIcon name={conta.status === 'pendente' ? 'block' : 'check'} size={20} />
-											</button>
+											<div className="flex items-center justify-center gap-2">
+												<button
+													type="button"
+													onClick={() => void handleToggle(conta.id)}
+													className={`p-1.5 transition-colors ${conta.status === 'pendente' ? 'text-slate-500 hover:text-emerald-600' : 'text-emerald-600 hover:opacity-70'}`}
+												>
+													<MaterialIcon name={conta.status === 'pendente' ? 'block' : 'check'} size={20} />
+												</button>
+												<button
+													type="button"
+													onClick={() => void handleDelete(conta.id)}
+													className="p-1.5 text-slate-500 hover:text-red-600 transition-colors"
+													title="Excluir"
+												>
+													<MaterialIcon name="delete" size={20} />
+												</button>
+											</div>
 										</td>
 									</tr>
 								))

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Search,
   ChevronRight,
@@ -27,6 +27,9 @@ import {
   Receipt,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { api } from '../lib/api';
+import { ativoFromDb } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Servico {
   id: number;
@@ -37,6 +40,19 @@ interface Servico {
   unidade: string;
   ativo: boolean;
   popular?: boolean;
+}
+
+function mapServico(r: Record<string, unknown>): Servico {
+  return {
+    id: Number(r.id),
+    nome: String(r.nome ?? ''),
+    descricao: String(r.descricao ?? ''),
+    categoria: String(r.categoria ?? ''),
+    valorUnitario: Number(r.valor_unitario ?? r.valorUnitario ?? 0),
+    unidade: String(r.unidade ?? ''),
+    ativo: ativoFromDb(r.ativo),
+    popular: Boolean(r.popular),
+  };
 }
 
 const categorias = [
@@ -76,21 +92,6 @@ const formasPagamento = [
   { id: 'transferencia', nome: 'Transferência', icon: Receipt, parcelas: 'À vista' },
 ];
 
-const servicosDisponiveis: Servico[] = [
-  { id: 1, nome: 'Frete Rodoviário', descricao: 'Serviço de transporte de cargas para médias e longas distâncias', categoria: 'transporte', valorUnitario: 1500, unidade: 'viagem', ativo: true, popular: true },
-  { id: 2, nome: 'Locação de Retroescavadeira', descricao: 'Locação de máquina pesada com operador incluso', categoria: 'locacao', valorUnitario: 800, unidade: 'dia', ativo: true },
-  { id: 3, nome: 'Manutenção Preventiva', descricao: 'Revisão completa do veículo incluindo freios e suspensão', categoria: 'manutencao', valorUnitario: 350, unidade: 'serviço', ativo: true, popular: true },
-  { id: 4, nome: 'Aluguel de Empilhadeira', descricao: 'Empilhadeira elétrica para movimentação interna', categoria: 'locacao', valorUnitario: 200, unidade: 'dia', ativo: true },
-  { id: 5, nome: 'Seguro de Cargas', descricao: 'Cobertura completa para transporte de mercadorias', categoria: 'seguros', valorUnitario: 5000, unidade: 'ano', ativo: true },
-  { id: 6, nome: 'Troca de Pneus', descricao: 'Substituição de pneus com balanceamento e alinhamento', categoria: 'manutencao', valorUnitario: 180, unidade: 'serviço', ativo: true },
-  { id: 7, nome: 'Instalação Elétrica', descricao: 'Instalação e manutenção de sistemas elétricos prediais', categoria: 'energia', valorUnitario: 450, unidade: 'serviço', ativo: true },
-  { id: 8, nome: 'Limpeza Industrial', descricao: 'Serviço de limpeza especializada para galpões', categoria: 'servicos', valorUnitario: 600, unidade: 'serviço', ativo: true },
-  { id: 9, nome: 'Transporte Expresso', descricao: 'Entrega urgente em até 24 horas na região metropolitana', categoria: 'transporte', valorUnitario: 2200, unidade: 'viagem', ativo: true, popular: true },
-  { id: 10, nome: 'Locação de Gerador', descricao: 'Gerador de energia 50kVA para eventos e obras', categoria: 'energia', valorUnitario: 350, unidade: 'dia', ativo: true },
-  { id: 11, nome: 'Pintura Veicular', descricao: 'Pintura completa ou parcial com acabamento profissional', categoria: 'manutencao', valorUnitario: 1200, unidade: 'serviço', ativo: true },
-  { id: 12, nome: 'Seguro de Equipamentos', descricao: 'Proteção contra danos e roubo de equipamentos', categoria: 'seguros', valorUnitario: 3200, unidade: 'ano', ativo: false },
-];
-
 interface CartItem {
   servico: Servico;
   quantidade: number;
@@ -102,6 +103,25 @@ interface NovoOrcamentoProps {
 }
 
 export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSalvar }) => {
+  const { toast } = useAppFeedback();
+  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const raw = await api.list<Record<string, unknown>>('servicos');
+      setServicos(raw.map(mapServico));
+    } catch (e) {
+      setServicos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
   const [cidadeExecucao, setCidadeExecucao] = useState('');
   const [categoriaSelecionada, setCategoriaSelecionada] = useState('todas');
   const [tabelaSelecionada, setTabelaSelecionada] = useState('padrao');
@@ -122,13 +142,25 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
   const [formaPagamento, setFormaPagamento] = useState('');
   const [observacoes, setObservacoes] = useState('');
 
-  const clientesCadastrados = [
-    { id: 1, nome: 'Transportadora Silva LTDA', email: 'contato@silva.com.br', telefone: '(11) 98765-4321', empresa: 'Silva Transportes' },
-    { id: 2, nome: 'João Oliveira', email: 'joao@email.com', telefone: '(21) 97654-3210', empresa: '' },
-    { id: 3, nome: 'LogTech Logística S/A', email: 'compras@logtech.com', telefone: '(31) 96543-2109', empresa: 'LogTech' },
-    { id: 4, nome: 'Maria Santos', email: 'maria.santos@email.com', telefone: '(41) 95432-1098', empresa: '' },
-    { id: 5, nome: 'Construtora Horizonte', email: 'financeiro@horizonte.com', telefone: '(51) 94321-0987', empresa: 'Horizonte Constr.' },
-  ];
+  const [clientesCadastrados, setClientesCadastrados] = useState<{ id: number; nome: string; email: string; telefone: string; empresa: string }[]>([]);
+
+  useEffect(() => {
+    const loadClientes = async () => {
+      try {
+        const raw = await api.list<Record<string, unknown>>('clientes');
+        setClientesCadastrados(raw.map(r => ({
+          id: Number(r.id),
+          nome: String(r.nome ?? ''),
+          email: String(r.email ?? ''),
+          telefone: String(r.telefone ?? ''),
+          empresa: String(r.empresa ?? ''),
+        })));
+      } catch (e) {
+        setClientesCadastrados([]);
+      }
+    };
+    loadClientes();
+  }, []);
 
   const clientesFiltrados = useMemo(() => {
     if (!buscaCliente) return clientesCadastrados;
@@ -136,7 +168,7 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
       c.nome.toLowerCase().includes(buscaCliente.toLowerCase()) ||
       c.empresa.toLowerCase().includes(buscaCliente.toLowerCase())
     );
-  }, [buscaCliente]);
+  }, [clientesCadastrados, buscaCliente]);
 
   const selecionarCliente = (cliente: typeof clientesCadastrados[0]) => {
     setClienteSelecionado(cliente.id);
@@ -157,13 +189,14 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
   }, [dropdownAberto]);
 
   const filteredServicos = useMemo(() => {
-    return servicosDisponiveis.filter(servico => {
-      const matchCategoria = categoriaSelecionada === 'todas' || servico.categoria === categoriaSelecionada;
-      const matchSearch = servico.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          servico.descricao.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchCategoria && matchSearch;
-    });
-  }, [categoriaSelecionada, searchTerm]);
+    return servicos
+      .filter(servico => {
+        const matchCategoria = categoriaSelecionada === 'todas' || servico.categoria === categoriaSelecionada;
+        const matchSearch = servico.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            servico.descricao.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchCategoria && matchSearch;
+      });
+  }, [servicos, categoriaSelecionada, searchTerm]);
 
   const tabelaAtual = tabelasPreco.find(t => t.id === tabelaSelecionada)!;
 
@@ -180,7 +213,7 @@ export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSa
   };
 
   const itensCarrinho: CartItem[] = Object.entries(carrinho).map(([id, quantidade]) => ({
-    servico: servicosDisponiveis.find(s => s.id === Number(id))!,
+    servico: servicos.find(s => s.id === Number(id))!,
     quantidade,
   })).filter(item => item.servico);
 

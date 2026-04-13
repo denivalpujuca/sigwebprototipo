@@ -3,6 +3,7 @@ import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { api } from '../lib/api';
 import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Vehicle {
 	id: number;
@@ -36,6 +37,7 @@ interface VehiclesPageProps {
 }
 
 export const VehiclesPage: React.FC<VehiclesPageProps> = () => {
+	const { toast, confirm } = useAppFeedback();
 	const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -111,8 +113,9 @@ export const VehiclesPage: React.FC<VehiclesPageProps> = () => {
 			setIsModalOpen(false);
 			setEditingVehicle(null);
 			setFormData({ nome: '', placa: '', chassi: '', volume: 0, marca: '', modelo: '', tipo: '' });
+			toast.success(editingVehicle ? 'Veículo atualizado com sucesso.' : 'Veículo cadastrado com sucesso.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao salvar veículo');
+			toast.error(e instanceof Error ? e.message : 'Erro ao salvar veículo');
 		}
 	};
 
@@ -138,8 +141,24 @@ export const VehiclesPage: React.FC<VehiclesPageProps> = () => {
 				ativo: ativoToDb(!v.ativo),
 			});
 			setVehicles((prev) => prev.map((x) => (x.id === id ? mapVehicle(updated) : x)));
+			toast.success('Status do veículo atualizado.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao atualizar status');
+			toast.error(e instanceof Error ? e.message : 'Erro ao atualizar status');
+		}
+	};
+
+	const handleDelete = async (id: number) => {
+		const ok = await confirm({
+			title: 'Excluir veículo?',
+			description: 'Deseja realmente excluir este registro? Esta ação não pode ser desfeita.',
+		});
+		if (!ok) return;
+		try {
+			await api.delete('vehicles', id);
+			setVehicles((prev) => prev.filter((x) => x.id !== id));
+			toast.destructive('Veículo excluído.');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
 		}
 	};
 
@@ -253,6 +272,14 @@ export const VehiclesPage: React.FC<VehiclesPageProps> = () => {
 													className={`p-1.5 transition-colors ${vehicle.ativo ? 'text-slate-500 hover:text-red-600' : 'text-emerald-600 hover:opacity-70'}`}
 												>
 													<MaterialIcon name={vehicle.ativo ? 'block' : 'check'} size={20} />
+												</button>
+												<button
+													type="button"
+													onClick={() => void handleDelete(vehicle.id)}
+													className="p-1.5 text-slate-500 hover:text-red-600 transition-colors"
+													title="Excluir"
+												>
+													<MaterialIcon name="delete" size={20} />
 												</button>
 											</div>
 										</td>

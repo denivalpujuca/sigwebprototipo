@@ -3,6 +3,7 @@ import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { api } from '../lib/api';
 import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Cargo {
 	id: number;
@@ -24,6 +25,7 @@ interface CargosProps {
 }
 
 export const CargosPage: React.FC<CargosProps> = () => {
+	const { toast, confirm } = useAppFeedback();
 	const [cargos, setCargos] = useState<Cargo[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -79,8 +81,9 @@ export const CargosPage: React.FC<CargosProps> = () => {
 			setIsModalOpen(false);
 			setEditingCargo(null);
 			setFormData({ nome: '' });
+			toast.success(editingCargo ? 'Cargo atualizado com sucesso.' : 'Cargo cadastrado com sucesso.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao salvar cargo');
+			toast.error(e instanceof Error ? e.message : 'Erro ao salvar cargo');
 		}
 	};
 
@@ -96,8 +99,24 @@ export const CargosPage: React.FC<CargosProps> = () => {
 		try {
 			const updated = await api.update<Record<string, unknown>>('cargos', id, { ativo: ativoToDb(!c.ativo) });
 			setCargos((prev) => prev.map((x) => (x.id === id ? mapCargo(updated) : x)));
+			toast.success('Status do cargo atualizado.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao atualizar');
+			toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+		}
+	};
+
+	const handleDelete = async (id: number) => {
+		const ok = await confirm({
+			title: 'Excluir cargo?',
+			description: 'Deseja realmente excluir este registro? Esta ação não pode ser desfeita.',
+		});
+		if (!ok) return;
+		try {
+			await api.delete('cargos', id);
+			setCargos((prev) => prev.filter((x) => x.id !== id));
+			toast.destructive('Cargo excluído.');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
 		}
 	};
 
@@ -190,6 +209,14 @@ export const CargosPage: React.FC<CargosProps> = () => {
 													className={`p-1.5 transition-colors ${cargo.ativo ? 'text-slate-500 hover:text-red-600' : 'text-emerald-600 hover:opacity-70'}`}
 												>
 													<MaterialIcon name={cargo.ativo ? 'block' : 'check'} size={20} />
+												</button>
+												<button
+													type="button"
+													onClick={() => void handleDelete(cargo.id)}
+													className="p-1.5 text-slate-500 hover:text-red-600 transition-colors"
+													title="Excluir"
+												>
+													<MaterialIcon name="delete" size={20} />
 												</button>
 											</div>
 										</td>

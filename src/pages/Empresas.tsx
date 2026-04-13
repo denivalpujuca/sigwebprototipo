@@ -3,6 +3,7 @@ import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { api } from '../lib/api';
 import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Empresa {
 	id: number;
@@ -32,6 +33,7 @@ interface EmpresasProps {
 }
 
 export const EmpresasPage: React.FC<EmpresasProps> = () => {
+	const { toast, confirm } = useAppFeedback();
 	const [empresas, setEmpresas] = useState<Empresa[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -94,8 +96,9 @@ export const EmpresasPage: React.FC<EmpresasProps> = () => {
 			setIsModalOpen(false);
 			setEditingEmpresa(null);
 			setFormData({ nome: '', cnpj: '', email: '', telefone: '', endereco: '' });
+			toast.success(editingEmpresa ? 'Empresa atualizada com sucesso.' : 'Empresa cadastrada com sucesso.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao salvar');
+			toast.error(e instanceof Error ? e.message : 'Erro ao salvar');
 		}
 	};
 
@@ -111,8 +114,24 @@ export const EmpresasPage: React.FC<EmpresasProps> = () => {
 		try {
 			const updated = await api.update<Record<string, unknown>>('empresas', id, { ativo: ativoToDb(!e.ativo) });
 			setEmpresas((prev) => prev.map((x) => (x.id === id ? mapEmpresa(updated) : x)));
+			toast.success('Status da empresa atualizado.');
 		} catch (err) {
-			alert(err instanceof Error ? err.message : 'Erro ao atualizar');
+			toast.error(err instanceof Error ? err.message : 'Erro ao atualizar');
+		}
+	};
+
+	const handleDelete = async (id: number) => {
+		const ok = await confirm({
+			title: 'Excluir empresa?',
+			description: 'Deseja realmente excluir este registro? Esta ação não pode ser desfeita.',
+		});
+		if (!ok) return;
+		try {
+			await api.delete('empresas', id);
+			setEmpresas((prev) => prev.filter((x) => x.id !== id));
+			toast.destructive('Empresa excluída.');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
 		}
 	};
 
@@ -209,6 +228,14 @@ export const EmpresasPage: React.FC<EmpresasProps> = () => {
 													className={`p-1.5 transition-colors ${empresa.ativo ? 'text-slate-500 hover:text-red-600' : 'text-emerald-600 hover:opacity-70'}`}
 												>
 													<MaterialIcon name={empresa.ativo ? 'block' : 'check'} size={20} />
+												</button>
+												<button
+													type="button"
+													onClick={() => void handleDelete(empresa.id)}
+													className="p-1.5 text-slate-500 hover:text-red-600 transition-colors"
+													title="Excluir"
+												>
+													<MaterialIcon name="delete" size={20} />
 												</button>
 											</div>
 										</td>

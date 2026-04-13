@@ -1,7 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { api } from '../lib/api';
+import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface MTR {
   id: number;
@@ -15,25 +18,54 @@ interface MTR {
   status: 'EMITIDO' | 'TRANSPORTADO' | 'RECEBIDO' | 'CANCELADO';
 }
 
-const initialMTRs: MTR[] = [
-  { id: 1, codigo: 'MTR-001/2026', residuo: 'Óleo Usado', classe: 'Classe I', quantidade: 200, unidade: 'L', transportador: 'Transp. Omega', dataEmissao: '2026-04-01', status: 'RECEBIDO' },
-  { id: 2, codigo: 'MTR-002/2026', residuo: 'Bateria', classe: 'Classe II', quantidade: 50, unidade: 'un', transportador: 'Transp. Delta', dataEmissao: '2026-04-02', status: 'TRANSPORTADO' },
-  { id: 3, codigo: 'MTR-003/2026', residuo: 'Resíduo Hospitalar', classe: 'Classe I', quantidade: 30, unidade: 'kg', transportador: 'Transp. Omega', dataEmissao: '2026-04-03', status: 'EMITIDO' },
-];
+function mapMTR(r: Record<string, unknown>): MTR {
+  return {
+    id: Number(r.id),
+    codigo: String(r.codigo ?? ''),
+    residuo: String(r.residuo ?? ''),
+    classe: String(r.classe ?? ''),
+    quantidade: Number(r.quantidade ?? 0),
+    unidade: String(r.unidade ?? 'kg'),
+    transportador: String(r.transportador ?? ''),
+    dataEmissao: String(r.data_emissao ?? r.dataEmissao ?? ''),
+    status: (String(r.status ?? 'EMITIDO') as MTR['status']),
+  };
+}
 
 interface ResiduosMTRProps {
   activeSection?: string;
   onSectionChange?: (section: string) => void;
 }
 
-export const ResiduosMTRPage: React.FC<ResiduosMTRProps> = () => {
-  const [mtrs, setMtrs] = useState<MTR[]>(initialMTRs);
+export const ResiduosMTRPage: React.FC = () => {
+  const { toast, confirm } = useAppFeedback();
+  const [mtrs, setMtrs] = useState<MTR[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMtr, setEditingMtr] = useState<MTR | null>(null);
   const [formData, setFormData] = useState<{ codigo: string; residuo: string; classe: string; quantidade: number; unidade: string; transportador: string; dataEmissao: string; status: 'EMITIDO' | 'TRANSPORTADO' | 'RECEBIDO' | 'CANCELADO' }>({ codigo: '', residuo: '', classe: '', quantidade: 0, unidade: 'kg', transportador: '', dataEmissao: '', status: 'EMITIDO' });
   const itemsPerPage = 5;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const raw = await api.list<Record<string, unknown>>('residuos_mtr');
+      setMtrs(raw.map(mapMTR));
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'Erro ao carregar MTRs');
+      setMtrs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const filteredMtrs = useMemo(() => {
     return mtrs.filter(mtr => 
@@ -49,16 +81,32 @@ export const ResiduosMTRPage: React.FC<ResiduosMTRProps> = () => {
 
   const totalPages = Math.ceil(filteredMtrs.length / itemsPerPage);
 
-  const handleSave = () => {
-    if (editingMtr) {
-      setMtrs(prev => prev.map(m => m.id === editingMtr.id ? { ...formData, id: editingMtr.id } : m));
-    } else {
-      const newId = Math.max(...mtrs.map(m => m.id), 0) + 1;
-      setMtrs(prev => [...prev, { ...formData, id: newId }]);
+  const handleSave = async () => {
+    try {
+      const payload = {
+        codigo: formData.codigo || `MTR-${String(Date.now()).slice(-6)}/2026`,
+        residuo: formData.residuo,
+        classe: formData.classe,
+        quantidade: formData.quantidade,
+        unidade: formData.unidade,
+        transportador: formData.transportador,
+        data_emissao: formData.dataEmissao,
+        status: formData.status,
+      };
+      if (editingMtr) {
+        const updated = await api.update<Record<string, unknown>>('residuos_mtr', editingMtr.id, payload);
+        setMtrs(prev => prev.map(m => m.id === editingMtr.id ? mapMTR(updated) : m));
+      } else {
+        const created = await api.create<Record<string, unknown>>('residuos_mtr', payload);
+        setMtrs(prev => [...prev, mapMTR(created)]);
+      }
+      setIsModalOpen(false);
+      setEditingMtr(null);
+      setFormData({ codigo: '', residuo: '', classe: '', quantidade: 0, unidade: 'kg', transportador: '', dataEmissao: '', status: 'EMITIDO' });
+      toast.success(editingMtr ? 'MTR atualizado.' : 'MTR cadastrado.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao salvar');
     }
-    setIsModalOpen(false);
-    setEditingMtr(null);
-    setFormData({ codigo: '', residuo: '', classe: '', quantidade: 0, unidade: 'kg', transportador: '', dataEmissao: '', status: 'EMITIDO' });
   };
 
   const handleEdit = (mtr: MTR) => {
@@ -67,16 +115,34 @@ export const ResiduosMTRPage: React.FC<ResiduosMTRProps> = () => {
     setIsModalOpen(true);
   };
 
-  const handleToggle = (id: number) => {
-    setMtrs(prev => prev.map(m => {
-      if (m.id === id) {
-        const statusOrder: MTR['status'][] = ['EMITIDO', 'TRANSPORTADO', 'RECEBIDO'];
-        const currentIndex = statusOrder.indexOf(m.status);
-        const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
-        return { ...m, status: nextStatus };
-      }
-      return m;
-    }));
+  const handleToggle = async (id: number) => {
+    const m = mtrs.find(x => x.id === id);
+    if (!m) return;
+    const statusOrder: MTR['status'][] = ['EMITIDO', 'TRANSPORTADO', 'RECEBIDO'];
+    const currentIndex = statusOrder.indexOf(m.status);
+    const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
+    try {
+      const updated = await api.update<Record<string, unknown>>('residuos_mtr', id, { status: nextStatus });
+      setMtrs(prev => prev.map(x => x.id === id ? mapMTR(updated) : x));
+      toast.success('Status atualizado.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    const ok = await confirm({
+      title: 'Excluir MTR?',
+      description: 'Deseja realmente excluir este registro?',
+    });
+    if (!ok) return;
+    try {
+      await api.delete('residuos_mtr', id);
+      setMtrs(prev => prev.filter(x => x.id !== id));
+      toast.destructive('MTR excluído.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
+    }
   };
 
   const handleAdd = () => {

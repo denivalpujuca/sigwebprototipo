@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { api } from '../lib/api';
 import { ativoFromDb, ativoToDb, formatDbDate } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Usuario {
 	id: number;
@@ -33,6 +34,7 @@ interface UsuariosPageProps {
 }
 
 export const UsuariosPage: React.FC<UsuariosPageProps> = () => {
+	const { toast, confirm } = useAppFeedback();
 	const [usuarios, setUsuarios] = useState<Usuario[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -104,8 +106,9 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = () => {
 			setIsModalOpen(false);
 			setEditingUsuario(null);
 			setFormData({ nome: '', email: '', cpf: '', tipoUsuario: 'Operador' });
+			toast.success(editingUsuario ? 'Usuário atualizado com sucesso.' : 'Usuário cadastrado com sucesso.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao salvar usuário');
+			toast.error(e instanceof Error ? e.message : 'Erro ao salvar usuário');
 		}
 	};
 
@@ -121,8 +124,24 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = () => {
 		try {
 			const updated = await api.update<Record<string, unknown>>('usuarios', id, { ativo: ativoToDb(!u.ativo) });
 			setUsuarios((prev) => prev.map((x) => (x.id === id ? mapUsuario(updated) : x)));
+			toast.success('Status do usuário atualizado.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao atualizar');
+			toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+		}
+	};
+
+	const handleDelete = async (id: number) => {
+		const ok = await confirm({
+			title: 'Excluir usuário?',
+			description: 'Deseja realmente excluir este registro? Esta ação não pode ser desfeita.',
+		});
+		if (!ok) return;
+		try {
+			await api.delete('usuarios', id);
+			setUsuarios((prev) => prev.filter((x) => x.id !== id));
+			toast.destructive('Usuário excluído.');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
 		}
 	};
 
@@ -223,6 +242,14 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = () => {
 													className={`p-1.5 transition-colors ${usuario.ativo ? 'text-slate-500 hover:text-red-600' : 'text-emerald-600 hover:opacity-70'}`}
 												>
 													<MaterialIcon name={usuario.ativo ? 'block' : 'check'} size={20} />
+												</button>
+												<button
+													type="button"
+													onClick={() => void handleDelete(usuario.id)}
+													className="p-1.5 text-slate-500 hover:text-red-600 transition-colors"
+													title="Excluir"
+												>
+													<MaterialIcon name="delete" size={20} />
 												</button>
 											</div>
 										</td>

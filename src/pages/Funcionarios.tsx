@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { api } from '../lib/api';
 import { ativoFromDb, ativoToDb, formatDbDate } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Funcionario {
 	id: number;
@@ -41,6 +42,7 @@ interface FuncionariosProps {
 }
 
 export const FuncionariosPage: React.FC<FuncionariosProps> = () => {
+	const { toast, confirm } = useAppFeedback();
 	const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -136,8 +138,9 @@ export const FuncionariosPage: React.FC<FuncionariosProps> = () => {
 			setIsModalOpen(false);
 			setEditingFuncionario(null);
 			setFormData({ nome: '', cpf: '', email: '', telefone: '', cargo: '', empresa: '', dataAdmissao: '', status: 'ATIVO' });
+			toast.success(editingFuncionario ? 'Funcionário atualizado com sucesso.' : 'Funcionário cadastrado com sucesso.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao salvar');
+			toast.error(e instanceof Error ? e.message : 'Erro ao salvar');
 		}
 	};
 
@@ -162,8 +165,24 @@ export const FuncionariosPage: React.FC<FuncionariosProps> = () => {
 		try {
 			const updated = await api.update<Record<string, unknown>>('funcionarios', id, { ativo: ativoToDb(!f.ativo) });
 			setFuncionarios((prev) => prev.map((x) => (x.id === id ? mapFuncionario(updated) : x)));
+			toast.success('Status do funcionário atualizado.');
 		} catch (e) {
-			alert(e instanceof Error ? e.message : 'Erro ao atualizar');
+			toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+		}
+	};
+
+	const handleDelete = async (id: number) => {
+		const ok = await confirm({
+			title: 'Excluir funcionário?',
+			description: 'Deseja realmente excluir este registro? Esta ação não pode ser desfeita.',
+		});
+		if (!ok) return;
+		try {
+			await api.delete('funcionarios', id);
+			setFuncionarios((prev) => prev.filter((x) => x.id !== id));
+			toast.destructive('Funcionário excluído.');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
 		}
 	};
 
@@ -263,6 +282,14 @@ export const FuncionariosPage: React.FC<FuncionariosProps> = () => {
 													className={`p-1.5 transition-colors ${func.ativo ? 'text-slate-500 hover:text-red-600' : 'text-emerald-600 hover:opacity-70'}`}
 												>
 													<MaterialIcon name={func.ativo ? 'block' : 'check'} size={20} />
+												</button>
+												<button
+													type="button"
+													onClick={() => void handleDelete(func.id)}
+													className="p-1.5 text-slate-500 hover:text-red-600 transition-colors"
+													title="Excluir"
+												>
+													<MaterialIcon name="delete" size={20} />
 												</button>
 											</div>
 										</td>

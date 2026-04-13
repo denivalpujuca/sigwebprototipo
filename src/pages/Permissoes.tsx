@@ -1,7 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { api } from '../lib/api';
+import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Permissao {
   id: number;
@@ -11,16 +14,15 @@ interface Permissao {
   ativo: boolean;
 }
 
-const initialPermissoes: Permissao[] = [
-  { id: 1, nome: 'Visualizar Veículos', descricao: 'Permite visualizar a lista de veículos', modulo: 'Frota', ativo: true },
-  { id: 2, nome: 'Editar Veículos', descricao: 'Permite editar informações dos veículos', modulo: 'Frota', ativo: true },
-  { id: 3, nome: 'Excluir Veículos', descricao: 'Permite excluir veículos do sistema', modulo: 'Frota', ativo: true },
-  { id: 4, nome: 'Cadastrar Veículos', descricao: 'Permite cadastrar novos veículos', modulo: 'Frota', ativo: true },
-  { id: 5, nome: 'Visualizar Compras', descricao: 'Permite visualizar pedidos e solicitações', modulo: 'Suprimentos', ativo: true },
-  { id: 6, nome: 'Aprovar Compras', descricao: 'Permite aprobar pedidos de compra', modulo: 'Suprimentos', ativo: true },
-  { id: 7, nome: 'Rejeitar Compras', descricao: 'Permite rechazar pedidos de compra', modulo: 'Suprimentos', ativo: true },
-  { id: 8, nome: 'Gerenciar Usuários', descricao: 'Permite gerenciar usuários do sistema', modulo: 'T.I.', ativo: false },
-];
+function mapPermissao(r: Record<string, unknown>): Permissao {
+  return {
+    id: Number(r.id),
+    nome: String(r.nome ?? ''),
+    descricao: String(r.descricao ?? ''),
+    modulo: String(r.modulo ?? ''),
+    ativo: ativoFromDb(r.ativo),
+  };
+}
 
 const modulos = ['Frota', 'Suprimentos', 'T.I.'];
 
@@ -29,14 +31,35 @@ interface PermissoesProps {
   onSectionChange?: (section: string) => void;
 }
 
-export const PermissoesPage: React.FC<PermissoesProps> = () => {
-  const [permissoes, setPermissoes] = useState<Permissao[]>(initialPermissoes);
+export const PermissoesPage: React.FC = () => {
+  const { toast, confirm } = useAppFeedback();
+  const [permissoes, setPermissoes] = useState<Permissao[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPermissao, setEditingPermissao] = useState<Permissao | null>(null);
   const [formData, setFormData] = useState({ nome: '', descricao: '', modulo: 'Frota' });
   const itemsPerPage = 5;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const raw = await api.list<Record<string, unknown>>('permissoes');
+      setPermissoes(raw.map(mapPermissao));
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'Erro ao carregar permissões');
+      setPermissoes([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const filteredPermissoes = useMemo(() => {
     return permissoes.filter(permissao => 
@@ -52,16 +75,30 @@ export const PermissoesPage: React.FC<PermissoesProps> = () => {
 
   const totalPages = Math.ceil(filteredPermissoes.length / itemsPerPage);
 
-  const handleSave = () => {
-    if (editingPermissao) {
-      setPermissoes(prev => prev.map(p => p.id === editingPermissao.id ? { ...formData, id: editingPermissao.id, ativo: editingPermissao.ativo } : p));
-    } else {
-      const newId = Math.max(...permissoes.map(p => p.id), 0) + 1;
-      setPermissoes(prev => [...prev, { ...formData, id: newId, ativo: true }]);
+  const handleSave = async () => {
+    try {
+      const payload = {
+        nome: formData.nome,
+        descricao: formData.descricao,
+        modulo: formData.modulo,
+      };
+      if (editingPermissao) {
+        const updated = await api.update<Record<string, unknown>>('permissoes', editingPermissao.id, {
+          ...payload,
+          ativo: ativoToDb(editingPermissao.ativo),
+        });
+        setPermissoes(prev => prev.map(p => p.id === editingPermissao.id ? mapPermissao(updated) : p));
+      } else {
+        const created = await api.create<Record<string, unknown>>('permissoes', { ...payload, ativo: 1 });
+        setPermissoes(prev => [...prev, mapPermissao(created)]);
+      }
+      setIsModalOpen(false);
+      setEditingPermissao(null);
+      setFormData({ nome: '', descricao: '', modulo: 'Frota' });
+      toast.success(editingPermissao ? 'Permissão atualizada.' : 'Permissão cadastrada.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao salvar');
     }
-    setIsModalOpen(false);
-    setEditingPermissao(null);
-    setFormData({ nome: '', descricao: '', modulo: 'Frota' });
   };
 
   const handleEdit = (permissao: Permissao) => {
@@ -70,8 +107,31 @@ export const PermissoesPage: React.FC<PermissoesProps> = () => {
     setIsModalOpen(true);
   };
 
-  const handleToggle = (id: number) => {
-    setPermissoes(prev => prev.map(p => p.id === id ? { ...p, ativo: !p.ativo } : p));
+  const handleToggle = async (id: number) => {
+    const p = permissoes.find(x => x.id === id);
+    if (!p) return;
+    try {
+      const updated = await api.update<Record<string, unknown>>('permissoes', id, { ativo: ativoToDb(!p.ativo) });
+      setPermissoes(prev => prev.map(x => x.id === id ? mapPermissao(updated) : x));
+      toast.success('Status atualizado.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    const ok = await confirm({
+      title: 'Excluir permissão?',
+      description: 'Deseja realmente excluir este registro?',
+    });
+    if (!ok) return;
+    try {
+      await api.delete('permissoes', id);
+      setPermissoes(prev => prev.filter(x => x.id !== id));
+      toast.destructive('Permissão excluída.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
+    }
   };
 
   const handleAdd = () => {
@@ -93,6 +153,7 @@ export const PermissoesPage: React.FC<PermissoesProps> = () => {
       <div className="mb-6">
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Permissões</h1>
         <p className="text-slate-500 text-sm">Gerenciamento de permissões e acessos do sistema.</p>
+        {loadError && <p className="text-sm text-red-600 mt-2">{loadError}</p>}
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
@@ -131,7 +192,11 @@ export const PermissoesPage: React.FC<PermissoesProps> = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedPermissoes.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">Carregando...</td>
+                </tr>
+              ) : paginatedPermissoes.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
                 </tr>

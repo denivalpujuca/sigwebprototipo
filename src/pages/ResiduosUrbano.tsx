@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { api } from '../lib/api';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Residuo {
   id: number;
@@ -12,22 +14,50 @@ interface Residuo {
   status: 'COLETADO' | 'PENDENTE' | 'ATRASADO';
 }
 
-const initialResiduos: Residuo[] = [
-  { id: 1, tipo: 'Orgânico', descricao: 'Resíduos de origem vegetal', origem: 'Parques', volume: 500, unidade: 'kg', dataColeta: '2026-04-01', status: 'COLETADO' },
-  { id: 2, tipo: 'Reciclável', descricao: 'Papel, plástico, vidro', origem: 'Escolas', volume: 200, unidade: 'kg', dataColeta: '2026-04-02', status: 'COLETADO' },
-  { id: 3, tipo: 'Orgânico', descricao: 'Resíduos de origem vegetal', origem: 'Mercados', volume: 800, unidade: 'kg', dataColeta: '2026-04-03', status: 'PENDENTE' },
-];
+function mapResiduo(r: Record<string, unknown>): Residuo {
+  return {
+    id: Number(r.id),
+    tipo: String(r.tipo ?? ''),
+    descricao: String(r.descricao ?? ''),
+    origem: String(r.origem ?? ''),
+    volume: Number(r.volume ?? 0),
+    unidade: String(r.unidade ?? 'kg'),
+    dataColeta: String(r.data_coleta ?? r.dataColeta ?? ''),
+    status: (String(r.status ?? 'PENDENTE') as Residuo['status']),
+  };
+}
 
 interface ResiduosUrbanoProps {
   activeSection?: string;
   onSectionChange?: (section: string) => void;
 }
 
-export const ResiduosUrbanoPage: React.FC<ResiduosUrbanoProps> = () => {
-  const [residuos, setResiduos] = useState<Residuo[]>(initialResiduos);
+export const ResiduosUrbanoPage: React.FC = () => {
+  const { toast } = useAppFeedback();
+  const [residuos, setResiduos] = useState<Residuo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const raw = await api.list<Record<string, unknown>>('residuos_urbano');
+      setResiduos(raw.map(mapResiduo));
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'Erro ao carregar resíduos');
+      setResiduos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const filteredResiduos = useMemo(() => {
     return residuos.filter(residuo => 
@@ -43,16 +73,19 @@ export const ResiduosUrbanoPage: React.FC<ResiduosUrbanoProps> = () => {
 
   const totalPages = Math.ceil(filteredResiduos.length / itemsPerPage);
 
-  const handleToggle = (id: number) => {
-    setResiduos(prev => prev.map(r => {
-      if (r.id === id) {
-        const statusOrder: Residuo['status'][] = ['PENDENTE', 'COLETADO', 'ATRASADO'];
-        const currentIndex = statusOrder.indexOf(r.status);
-        const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
-        return { ...r, status: nextStatus };
-      }
-      return r;
-    }));
+  const handleToggle = async (id: number) => {
+    const r = residuos.find(x => x.id === id);
+    if (!r) return;
+    const statusOrder: Residuo['status'][] = ['PENDENTE', 'COLETADO', 'ATRASADO'];
+    const currentIndex = statusOrder.indexOf(r.status);
+    const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
+    try {
+      const updated = await api.update<Record<string, unknown>>('residuos_urbano', id, { status: nextStatus });
+      setResiduos(prev => prev.map(x => x.id === id ? mapResiduo(updated) : x));
+      toast.success('Status atualizado.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+    }
   };
 
   const content = (
@@ -68,6 +101,7 @@ export const ResiduosUrbanoPage: React.FC<ResiduosUrbanoProps> = () => {
       <div className="mb-6">
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Resíduos Urbano</h1>
         <p className="text-slate-500 text-sm">Gerenciamento de resíduos urbanos.</p>
+        {loadError && <p className="text-sm text-red-600 mt-2">{loadError}</p>}
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
@@ -100,7 +134,11 @@ export const ResiduosUrbanoPage: React.FC<ResiduosUrbanoProps> = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedResiduos.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">Carregando...</td>
+                </tr>
+              ) : paginatedResiduos.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
                 </tr>

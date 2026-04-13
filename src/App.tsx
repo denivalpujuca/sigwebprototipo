@@ -4,6 +4,7 @@ import { AppSidebar } from './components/AppSidebar';
 import { AppHeader } from './components/AppHeader';
 import { HomePage } from './pages/Home';
 import { LoginPage } from './pages/Login';
+import { AppFeedbackProvider } from './context/AppFeedbackContext';
 
 export const LogoutContext = createContext<{ onLogout: () => void }>({ onLogout: () => {} });
 
@@ -105,7 +106,9 @@ const OrdemServicoPage = React.lazy(() => import('./pages/OrdemServico').then(m 
 function App() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <AppFeedbackProvider>
+        <AppRoutes />
+      </AppFeedbackProvider>
     </BrowserRouter>
   );
 }

@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "deploy:worker": "npm install --prefix sqlite-worker/sigweb-api && npm run deploy --prefix sqlite-worker/sigweb-api",
-    "deploy:pages": "npm run build && wrangler pages deploy dist --project-name=sigweb"
+    "deploy:pages": "npm run build && wrangler pages deploy dist --project-name=sigweb",
+    "d1:push": "npm install --prefix sqlite-worker/sigweb-api && npm run d1:push --prefix sqlite-worker/sigweb-api",
+    "d1:push:local": "npm install --prefix sqlite-worker/sigweb-api && npm run d1:push:local --prefix sqlite-worker/sigweb-api"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",

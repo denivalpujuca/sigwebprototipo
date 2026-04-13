@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
-import { useNavigate } from 'react-router-dom';
+import { api } from '../lib/api';
+import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Servico {
   id: number;
@@ -12,26 +14,49 @@ interface Servico {
   ativo: boolean;
 }
 
-const initialServicos: Servico[] = [
-  { id: 1, nome: 'Frete', descricao: 'Serviço de transporte de cargas', categoria: 'Transporte', valorUnitario: 1500, unidade: 'viagem', ativo: true },
-  { id: 2, nome: 'Locação de Máquina', descricao: 'Locação de máquinas pesadas', categoria: 'Locação', valorUnitario: 500, unidade: 'dia', ativo: true },
-  { id: 3, nome: 'Manutenção Veicular', descricao: 'Serviço de manutenção de veículos', categoria: 'Serviços', valorUnitario: 300, unidade: 'serviço', ativo: true },
-  { id: 4, nome: 'Aluguel de Empilhadeira', descricao: 'Aluguel de empilhadeira para movimentação', categoria: 'Locação', valorUnitario: 200, unidade: 'dia', ativo: true },
-  { id: 5, nome: 'Seguro', descricao: 'Cobertura securitária para cargas', categoria: 'Seguros', valorUnitario: 5000, unidade: 'ano', ativo: true },
-  { id: 6, nome: 'Acompanhamento', descricao: 'Serviço de acompanhamento de carga', categoria: 'Serviços', valorUnitario: 100, unidade: 'hora', ativo: true },
-];
+function mapServico(r: Record<string, unknown>): Servico {
+  return {
+    id: Number(r.id),
+    nome: String(r.nome ?? ''),
+    descricao: String(r.descricao ?? ''),
+    categoria: String(r.categoria ?? ''),
+    valorUnitario: Number(r.valor_unitario ?? r.valorUnitario ?? 0),
+    unidade: String(r.unidade ?? ''),
+    ativo: ativoFromDb(r.ativo),
+  };
+}
 
 interface VendasProps {
   activeSection?: string;
   onSectionChange?: (section: string) => void;
 }
 
-export const VendasPage: React.FC<VendasProps> = () => {
-  const navigate = useNavigate();
-  const [servicos, setServicos] = useState<Servico[]>(initialServicos);
+export const VendasPage: React.FC = () => {
+  const { toast } = useAppFeedback();
+  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const raw = await api.list<Record<string, unknown>>('servicos');
+      setServicos(raw.map(mapServico));
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'Erro ao carregar serviços');
+      setServicos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const filteredServicos = useMemo(() => {
     return servicos.filter(servico => 
@@ -47,8 +72,16 @@ export const VendasPage: React.FC<VendasProps> = () => {
 
   const totalPages = Math.ceil(filteredServicos.length / itemsPerPage);
 
-  const handleToggle = (id: number) => {
-    setServicos(prev => prev.map(s => s.id === id ? { ...s, ativo: !s.ativo } : s));
+  const handleToggle = async (id: number) => {
+    const s = servicos.find(x => x.id === id);
+    if (!s) return;
+    try {
+      const updated = await api.update<Record<string, unknown>>('servicos', id, { ativo: ativoToDb(!s.ativo) });
+      setServicos(prev => prev.map(x => x.id === id ? mapServico(updated) : x));
+      toast.success('Status do serviço atualizado.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+    }
   };
 
   const content = (
@@ -64,6 +97,7 @@ export const VendasPage: React.FC<VendasProps> = () => {
       <div className="mb-6">
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Vendas</h1>
         <p className="text-slate-500 text-sm">Gerenciamento de vendas.</p>
+        {loadError && <p className="text-sm text-red-600 mt-2">{loadError}</p>}
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
@@ -79,13 +113,6 @@ export const VendasPage: React.FC<VendasProps> = () => {
             />
           </div>
         </div>
-        <button
-          onClick={() => navigate('/catalogo-produtos')}
-          className="bg-emerald-600 hover:bg-emerald-700 px-6 py-2.5 text-white font-bold rounded-md flex items-center gap-2 transition-colors"
-        >
-          <MaterialIcon name="store" size={20} />
-          Catálogo de Produtos
-        </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
@@ -102,7 +129,11 @@ export const VendasPage: React.FC<VendasProps> = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedServicos.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">Carregando...</td>
+                </tr>
+              ) : paginatedServicos.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
                 </tr>
