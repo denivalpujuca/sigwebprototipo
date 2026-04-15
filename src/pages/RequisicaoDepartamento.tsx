@@ -201,15 +201,18 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
     doc.setFont('helvetica', 'bold');
     doc.text('ASSINATURAS', 15, finalY + 15);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Responsável pelo Almoxarifado: ${usuarioLogado}`, 15, finalY + 25);
-    doc.line(15, finalY + 40, 90, finalY + 40);
-    doc.text('Nome:', 15, finalY + 46);
-    doc.text('Data:', 70, finalY + 46);
     
-    doc.text(`Solicitante: ${selectedRequisicao.solicitante}`, 110, finalY + 25);
+    doc.setFont('helvetica', 'bold');
+    doc.text(usuarioLogado, 52.5, finalY + 30, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.text('Responsável pelo Almoxarifado', 52.5, finalY + 36, { align: 'center' });
+    doc.line(15, finalY + 40, 90, finalY + 40);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text(selectedRequisicao.solicitante, 147.5, finalY + 30, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.text('Solicitante', 147.5, finalY + 36, { align: 'center' });
     doc.line(110, finalY + 40, 185, finalY + 40);
-    doc.text('Nome:', 110, finalY + 46);
-    doc.text('Data:', 165, finalY + 46);
     
     doc.save(`requisicao_${selectedRequisicao.id}.pdf`);
   };
