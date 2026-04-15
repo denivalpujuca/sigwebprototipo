@@ -1,31 +1,48 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { Search } from 'lucide-react';
+import { api } from '../lib/api';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Requisicao {
   id: number;
   setor: string;
   almoxarifado: string;
-  data: Date;
+  data: string;
   itens: number;
   status: 'pendente' | 'aprovado' | 'rejeitado' | 'comprado';
 }
 
-const initialRequisicoes: Requisicao[] = [
-  { id: 1, setor: 'Recursos Humanos', almoxarifado: 'Almoxarifado Central', data: new Date('2026-04-01'), itens: 5, status: 'pendente' },
-  { id: 2, setor: 'Manutenção', almoxarifado: 'Almoxarifado Norte', data: new Date('2026-04-02'), itens: 10, status: 'aprovado' },
-  { id: 3, setor: 'TI', almoxarifado: 'Almoxarifado Sul', data: new Date('2026-04-03'), itens: 3, status: 'comprado' },
-];
-
-interface SolicitacaoCompraProps {
-  activeSection?: string;
-  onSectionChange?: (section: string) => void;
+function mapRequisicao(r: Record<string, unknown>): Requisicao {
+  return {
+    id: Number(r.id),
+    setor: String(r.setor ?? ''),
+    almoxarifado: String(r.almoxarifado ?? ''),
+    data: String(r.data ?? ''),
+    itens: Number(r.itens ?? 0),
+    status: (String(r.status ?? 'pendente') as Requisicao['status']),
+  };
 }
 
-export const SolicitacaoCompraPage: React.FC<SolicitacaoCompraProps> = () => {
-  const [requisicoes, setRequisicoes] = useState<Requisicao[]>(initialRequisicoes);
+export const SolicitacaoCompraPage: React.FC = () => {
+  const { toast } = useAppFeedback();
+  const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  const load = useCallback(async () => {
+    try {
+      const raw = await api.list<Record<string, unknown>>('solicitacoes_compra');
+      setRequisicoes(raw.map(mapRequisicao));
+    } catch (e) {
+      setRequisicoes([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const filteredRequisicoes = useMemo(() => {
     return requisicoes.filter(req => 
@@ -41,16 +58,19 @@ export const SolicitacaoCompraPage: React.FC<SolicitacaoCompraProps> = () => {
 
   const totalPages = Math.ceil(filteredRequisicoes.length / itemsPerPage);
 
-  const handleToggle = (id: number) => {
-    setRequisicoes(prev => prev.map(r => {
-      if (r.id === id) {
-        const statusOrder: Requisicao['status'][] = ['pendente', 'aprovado', 'comprado'];
-        const currentIndex = statusOrder.indexOf(r.status);
-        const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
-        return { ...r, status: nextStatus };
-      }
-      return r;
-    }));
+  const handleToggle = async (id: number) => {
+    const r = requisicoes.find(x => x.id === id);
+    if (!r) return;
+    const statusOrder: Requisicao['status'][] = ['pendente', 'aprovado', 'comprado'];
+    const currentIndex = statusOrder.indexOf(r.status);
+    const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
+    try {
+      const updated = await api.update<Record<string, unknown>>('solicitacoes_compra', id, { status: nextStatus });
+      setRequisicoes(prev => prev.map(x => x.id === id ? mapRequisicao(updated) : x));
+      toast.success('Status atualizado.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+    }
   };
 
   const content = (
@@ -71,13 +91,13 @@ export const SolicitacaoCompraPage: React.FC<SolicitacaoCompraProps> = () => {
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
         <div className="flex-1 flex gap-2">
           <div className="relative flex-1">
-            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
               placeholder="Pesquisar requisição"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -88,13 +108,13 @@ export const SolicitacaoCompraPage: React.FC<SolicitacaoCompraProps> = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#f5f5f5]">
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">ID</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-20">ID</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Setor</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Almoxarifado</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Itens</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Data</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Status</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -109,7 +129,7 @@ export const SolicitacaoCompraPage: React.FC<SolicitacaoCompraProps> = () => {
                     <td className="px-4 py-4 text-sm text-slate-500">{req.setor}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{req.almoxarifado}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{req.itens} itens</td>
-                    <td className="px-4 py-4 text-sm text-slate-500">{req.data.toLocaleDateString('pt-BR')}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{req.data ? new Date(req.data).toLocaleDateString('pt-BR') : '-'}</td>
                     <td className="px-4 py-4 text-center">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold capitalize ${req.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : req.status === 'aprovado' ? 'bg-emerald-100 text-emerald-700' : req.status === 'comprado' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
                         {req.status}

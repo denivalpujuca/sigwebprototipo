@@ -1,41 +1,71 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MaterialIcon } from '@/components/Icon';
+import { api } from '@/lib/api';
 
 interface LoginProps {
   onLogin: (sistema: string) => void;
 }
 
+interface Usuario {
+  id: number;
+  nome: string;
+  email: string;
+}
+
 export const LoginPage: React.FC<LoginProps> = ({ onLogin }) => {
-  const [usuario, setUsuario] = useState('');
-  const [senha, setSenha] = useState('');
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [usuarioId, setUsuarioId] = useState('');
   const [sistema, setSistema] = useState('saas');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [loadingUsuarios, setLoadingUsuarios] = useState(true);
+
+  useEffect(() => {
+    const loadUsuarios = async () => {
+      try {
+        const data = await api.list<Usuario>('usuarios');
+        const ativos = data.filter((u: any) => u.ativo === 1 || u.ativo === true);
+        setUsuarios(ativos);
+      } catch (e) {
+        console.error('Erro ao carregar usuários:', e);
+        setError('Erro ao carregar usuários');
+      } finally {
+        setLoadingUsuarios(false);
+      }
+    };
+    void loadUsuarios();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!usuario || !senha) {
-      setError('Por favor, preencha todos os campos');
+    if (!usuarioId) {
+      setError('Selecione um usuário');
       return;
     }
     setIsLoading(true);
+    
+    const usuario = usuarios.find(u => String(u.id) === usuarioId);
+    
+    localStorage.setItem('loggedIn', 'true');
+    localStorage.setItem('sistema', sistema);
+    localStorage.setItem('usuario_id', usuarioId);
+    localStorage.setItem('usuario_nome', usuario?.nome || '');
+    
     setTimeout(() => {
       onLogin(sistema);
       setIsLoading(false);
-    }, 500);
+    }, 300);
   };
 
-  const getSistemaLabel = (sistema: string) => {
-    switch (sistema) {
+  const getSistemaLabel = (s: string) => {
+    switch (s) {
       case 'saas': return 'SaaS - Gestão de Frotas';
       case 'abastecimento': return 'Abastecimento';
       case 'fiscal': return 'Fiscal - Controle de Chamada';
       case 'medica': return 'Saúde do Trabalhador - PCMSO';
-      default: return sistema;
+      default: return s;
     }
   };
 
@@ -59,55 +89,44 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
 
           <h1 className="text-xl font-bold text-slate-900 text-center mb-2">Bem-vindo</h1>
-          <p className="text-sm text-slate-500 text-center mb-6">Faça login para acessar o sistema</p>
+          <p className="text-sm text-slate-500 text-center mb-6">Selecione seu usuário para acessar</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Usuário</label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                  <MaterialIcon name="person" size={20} />
+              {loadingUsuarios ? (
+                <div className="flex items-center justify-center h-11 bg-slate-50 border border-slate-200 rounded-md">
+                  <div className="w-5 h-5 border-2 border-slate-300 border-t-emerald-600 rounded-full animate-spin"></div>
                 </div>
-                <Input
-                  type="text"
-                  value={usuario}
-                  onChange={(e) => { setUsuario(e.target.value); setError(''); }}
-                  className="pl-10 h-11"
-                  placeholder="Digite seu usuário"
-                  autoComplete="username"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Senha</label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                  <MaterialIcon name="lock" size={20} />
-                </div>
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  value={senha}
-                  onChange={(e) => { setSenha(e.target.value); setError(''); }}
-                  className="pl-10 pr-10 h-11"
-                  placeholder="Digite sua senha"
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <MaterialIcon name={showPassword ? 'visibility_off' : 'visibility'} size={20} />
-                </button>
-              </div>
+              ) : (
+                <Select value={usuarioId} onValueChange={(v) => { setUsuarioId(v); setError(''); }}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Selecione seu usuário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {usuarios.length === 0 ? (
+                      <div className="px-4 py-2 text-sm text-slate-500">Nenhum usuário encontrado</div>
+                    ) : (
+                      usuarios.map((u) => (
+                        <SelectItem key={u.id} value={String(u.id)}>
+                          <div className="flex items-center gap-2">
+                            <MaterialIcon name="person" size={16} />
+                            <span>{u.nome}</span>
+                            <span className="text-slate-400 text-xs">({u.email})</span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Sistema</label>
               <Select value={sistema} onValueChange={(v) => { setSistema(v); setError(''); }}>
                 <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Selecione o sistema" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="saas">{getSistemaLabel('saas')}</SelectItem>
@@ -127,7 +146,7 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin }) => {
 
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || loadingUsuarios || !usuarioId}
               className="w-full bg-emerald-600 hover:bg-emerald-700 h-11 font-semibold"
             >
               {isLoading ? (
@@ -136,14 +155,13 @@ export const LoginPage: React.FC<LoginProps> = ({ onLogin }) => {
                   <span>Entrando...</span>
                 </div>
               ) : (
-                'Entrar'
+                <>
+                  <MaterialIcon name="login" size={20} />
+                  <span>Entrar</span>
+                </>
               )}
             </Button>
           </form>
-
-          <div className="mt-6 pt-4 border-t border-slate-100 text-center">
-            <a href="#" className="text-sm text-emerald-600 hover:underline">Esqueceu sua senha?</a>
-          </div>
         </div>
 
         <div className="mt-6 text-center">

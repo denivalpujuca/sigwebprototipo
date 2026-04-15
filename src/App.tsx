@@ -5,6 +5,9 @@ import { AppHeader } from './components/AppHeader';
 import { HomePage } from './pages/Home';
 import { LoginPage } from './pages/Login';
 import { AppFeedbackProvider } from './context/AppFeedbackContext';
+import { EmpresaProvider } from './context/EmpresaContext';
+import { NotificacaoProvider } from './context/NotificacaoContext';
+import { api } from './lib/api';
 
 export const LogoutContext = createContext<{ onLogout: () => void }>({ onLogout: () => {} });
 
@@ -21,7 +24,17 @@ function NovoOrcamentoPageWrapper() {
 
 function CatalogoProdutosPageWrapper() {
   const navigate = useNavigate();
-  const handleSalvar = (dados: any) => {
+  const handleSalvar = async (dados: any) => {
+    console.log('Salvando pedido:', dados);
+    await api.create<Record<string, unknown>>('requisicoes_departamento', {
+      empresa: dados.empresa || '',
+      departamento: '',
+      solicitante: dados.cliente || '',
+      data: new Date().toISOString().split('T')[0],
+      itens: dados.itens?.length || 0,
+      status: 'pendente',
+    });
+    console.log('Requisição salva');
     localStorage.setItem('novoPedido', JSON.stringify(dados));
     window.dispatchEvent(new Event('pedidoSalvo'));
     navigate('/catalogo-produtos');
@@ -46,6 +59,8 @@ const MarcasPage = React.lazy(() => import('./pages/Marcas').then(m => ({ defaul
 const ModelosPage = React.lazy(() => import('./pages/Modelos').then(m => ({ default: (props: any) => React.createElement(m.ModelosPage, props) })));
 // @ts-ignore
 const FuncionariosPage = React.lazy(() => import('./pages/Funcionarios').then(m => ({ default: (props: any) => React.createElement(m.FuncionariosPage, props) })));
+// @ts-ignore
+const FuncionarioDetailsPage = React.lazy(() => import('./pages/FuncionarioDetails').then(m => ({ default: (props: any) => React.createElement(m.FuncionarioDetailsPage, props) })));
 // @ts-ignore
 const CargosPage = React.lazy(() => import('./pages/Cargos').then(m => ({ default: (props: any) => React.createElement(m.CargosPage, props) })));
 // @ts-ignore
@@ -85,8 +100,11 @@ const AuditoriaAdminPage = React.lazy(() => import('./pages/AuditoriaAdmin').the
 // @ts-ignore
 const AlmoxarifadosPage = React.lazy(() => import('./pages/Almoxarifados').then(m => ({ default: (props: any) => React.createElement(m.AlmoxarifadosPage, props) })));
 // @ts-ignore
-const RequisicaoCompraProdutosPage = React.lazy(() => import('./pages/RequisicaoCompraProdutos').then(m => ({ default: (props: any) => React.createElement(m.RequisicaoCompraProdutosPage, props) })));
+const AlmoxarifadoDetailsPage = React.lazy(() => import('./pages/AlmoxarifadoDetails').then(m => ({ default: (props: any) => React.createElement(m.AlmoxarifadoDetailsPage, props) })));
 // @ts-ignore
+const RequisicaoCompraProdutosPage = React.lazy(() => import('./pages/RequisicaoCompraProdutos').then(m => ({ default: (props: any) => React.createElement(m.RequisicaoCompraProdutosPage, props) })));
+const CategoriasProdutoPage = React.lazy(() => import('./pages/CategoriasProduto').then(m => ({ default: (props: any) => React.createElement(m.CategoriasProdutoPage, props) })));
+  // @ts-ignore
 const RequisicaoDepartamentoPage = React.lazy(() => import('./pages/RequisicaoDepartamento').then(m => ({ default: (props: any) => React.createElement(m.RequisicaoDepartamentoPage, props) })));
 // @ts-ignore
 const PeriodoAnoPage = React.lazy(() => import('./pages/PeriodoAno').then(m => ({ default: (props: any) => React.createElement(m.PeriodoAnoPage, props) })));
@@ -102,12 +120,22 @@ const CatalogoProdutosPage = React.lazy(() => import('./pages/CatalogoProdutos')
 const DocumentacaoPage = React.lazy(() => import('./pages/Documentacao').then(m => ({ default: (props: any) => React.createElement(m.DocumentacaoPage, props) })));
 // @ts-ignore
 const OrdemServicoPage = React.lazy(() => import('./pages/OrdemServico').then(m => ({ default: (props: any) => React.createElement(m.OrdemServicoPage, props) })));
+// @ts-ignore
+const DepartamentosPage = React.lazy(() => import('./pages/Departamentos').then(m => ({ default: (props: any) => React.createElement(m.DepartamentosPage, props) })));
+// @ts-ignore
+const UsuariosPermissoesPage = React.lazy(() => import('./pages/UsuariosPermissoes').then(m => ({ default: (props: any) => React.createElement(m.UsuariosPermissoesPage, props) })));
+// @ts-ignore
+const UsuarioModulosPage = React.lazy(() => import('./pages/UsuarioModulos').then(m => ({ default: (props: any) => React.createElement(m.UsuarioModulosPage, props) })));
 
 function App() {
   return (
     <BrowserRouter>
       <AppFeedbackProvider>
-        <AppRoutes />
+        <EmpresaProvider>
+          <NotificacaoProvider>
+            <AppRoutes />
+          </NotificacaoProvider>
+        </EmpresaProvider>
       </AppFeedbackProvider>
     </BrowserRouter>
   );
@@ -147,6 +175,9 @@ function AppRoutes() {
   const handleLogout = () => {
     localStorage.removeItem('loggedIn');
     localStorage.removeItem('sistema');
+    localStorage.removeItem('usuario_id');
+    localStorage.removeItem('usuario_nome');
+    localStorage.removeItem('empresa_selecionada_id');
     setIsLoggedIn(false);
     navigate('/', { replace: true });
   };
@@ -178,12 +209,14 @@ function AppRoutes() {
             <Route path="/clientes" element={<PageContent><ClientesPage /></PageContent>} />
             <Route path="/empresas" element={<PageContent><EmpresasPage /></PageContent>} />
             <Route path="/funcionarios" element={<PageContent><FuncionariosPage /></PageContent>} />
+            <Route path="/funcionarios/:id" element={<PageContent><FuncionarioDetailsPage /></PageContent>} />
             <Route path="/cargos" element={<PageContent><CargosPage /></PageContent>} />
             <Route path="/contratos" element={<PageContent><ContratosPage /></PageContent>} />
             <Route path="/servicos" element={<PageContent><ServicosPage /></PageContent>} />
             <Route path="/ordem-servico" element={<PageContent><OrdemServicoPage /></PageContent>} />
             <Route path="/fornecedores" element={<PageContent><FornecedoresPage /></PageContent>} />
             <Route path="/produtos" element={<PageContent><ProdutosPage /></PageContent>} />
+            <Route path="/categorias-produto" element={<PageContent><CategoriasProdutoPage /></PageContent>} />
             <Route path="/usuarios" element={<PageContent><UsuariosPage /></PageContent>} />
             <Route path="/tipos-usuario" element={<PageContent><TiposUsuarioPage /></PageContent>} />
             <Route path="/permissoes" element={<PageContent><PermissoesPage /></PageContent>} />
@@ -198,9 +231,13 @@ function AppRoutes() {
             <Route path="/auditoria" element={<PageContent><AuditoriaPage /></PageContent>} />
             <Route path="/auditoria-admin" element={<PageContent><AuditoriaAdminPage /></PageContent>} />
             <Route path="/almoxarifados" element={<PageContent><AlmoxarifadosPage /></PageContent>} />
+            <Route path="/almoxarifados/:id" element={<PageContent><AlmoxarifadoDetailsPage /></PageContent>} />
             <Route path="/requisicao-compra-produtos" element={<PageContent><RequisicaoCompraProdutosPage /></PageContent>} />
             <Route path="/requisicao-departamento" element={<PageContent><RequisicaoDepartamentoPage /></PageContent>} />
             <Route path="/periodo-ano" element={<PageContent><PeriodoAnoPage /></PageContent>} />
+            <Route path="/departamentos" element={<PageContent><DepartamentosPage /></PageContent>} />
+            <Route path="/usuarios-permissoes" element={<PageContent><UsuariosPermissoesPage /></PageContent>} />
+            <Route path="/usuario-modulos" element={<PageContent><UsuarioModulosPage /></PageContent>} />
             <Route path="/residuos-urbano" element={<PageContent><ResiduosUrbanoPage /></PageContent>} />
             <Route path="/residuos-mtr" element={<PageContent><ResiduosMTRPage /></PageContent>} />
             <Route path="/catalogo-servicos" element={<PageContent><CatalogoServicosPage /></PageContent>} />

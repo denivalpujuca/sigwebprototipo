@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { api } from '../lib/api';
@@ -26,13 +27,8 @@ function mapPermissao(r: Record<string, unknown>): Permissao {
 
 const modulos = ['Frota', 'Suprimentos', 'T.I.'];
 
-interface PermissoesProps {
-  activeSection?: string;
-  onSectionChange?: (section: string) => void;
-}
-
 export const PermissoesPage: React.FC = () => {
-  const { toast, confirm } = useAppFeedback();
+  const { toast } = useAppFeedback();
   const [permissoes, setPermissoes] = useState<Permissao[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -119,21 +115,6 @@ export const PermissoesPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    const ok = await confirm({
-      title: 'Excluir permissão?',
-      description: 'Deseja realmente excluir este registro?',
-    });
-    if (!ok) return;
-    try {
-      await api.delete('permissoes', id);
-      setPermissoes(prev => prev.filter(x => x.id !== id));
-      toast.destructive('Permissão excluída.');
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
-    }
-  };
-
   const handleAdd = () => {
     setEditingPermissao(null);
     setFormData({ nome: '', descricao: '', modulo: 'Frota' });
@@ -159,13 +140,13 @@ export const PermissoesPage: React.FC = () => {
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
         <div className="flex-1 flex gap-2">
           <div className="relative flex-1">
-            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
               placeholder="Pesquisar permissão"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -183,12 +164,12 @@ export const PermissoesPage: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#f5f5f5]">
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-20">ID</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nome</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Descrição</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Módulo</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-24">Módulo</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Status</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

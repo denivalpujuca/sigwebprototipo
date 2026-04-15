@@ -40,10 +40,12 @@ CREATE TABLE IF NOT EXISTS usuarios (
   email TEXT NOT NULL UNIQUE,
   cpf TEXT,
   tipo_usuario TEXT DEFAULT 'Operador',
+  empresa_id INTEGER,
   ativo INTEGER DEFAULT 1,
   ultimo_acesso TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (empresa_id) REFERENCES empresas(id)
 );
 
 -- Clientes
@@ -60,20 +62,34 @@ CREATE TABLE IF NOT EXISTS clientes (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Funcionarios
+-- Funcionarios (dados básicos)
 CREATE TABLE IF NOT EXISTS funcionarios (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nome TEXT NOT NULL,
   cpf TEXT,
   email TEXT,
   telefone TEXT,
-  cargo TEXT,
-  empresa TEXT,
-  data_admissao TEXT,
-  status TEXT DEFAULT 'ATIVO' CHECK(status IN ('ATIVO','FERIAS','LICENCA','DEMITIDO')),
+  foto TEXT,
   ativo INTEGER DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Histórico de admissões dos funcionários
+CREATE TABLE IF NOT EXISTS funcionarios_admissoes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  funcionario_id INTEGER NOT NULL,
+  empresa_id INTEGER,
+  cargo_id INTEGER,
+  data_admissao TEXT NOT NULL,
+  data_demissao TEXT,
+  status TEXT DEFAULT 'ATIVO' CHECK(status IN ('ATIVO','FERIAS','LICENCA','DEMITIDO','PROMOVIDO')),
+  ativo INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (funcionario_id) REFERENCES funcionarios(id),
+  FOREIGN KEY (empresa_id) REFERENCES empresas(id),
+  FOREIGN KEY (cargo_id) REFERENCES cargos(id)
 );
 
 -- Fornecedores
@@ -122,13 +138,23 @@ CREATE TABLE IF NOT EXISTS modelos (
   FOREIGN KEY (marca_id) REFERENCES marcas(id)
 );
 
+-- Categorias de Produtos
+CREATE TABLE IF NOT EXISTS categorias_produto (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome TEXT NOT NULL,
+  descricao TEXT,
+  ativo INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Produtos
 CREATE TABLE IF NOT EXISTS produtos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nome TEXT NOT NULL,
   codigo TEXT,
-  preco REAL DEFAULT 0,
-  estoque INTEGER DEFAULT 0,
+  categoria_id INTEGER,
+  unidade TEXT DEFAULT 'un',
   ativo INTEGER DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -168,9 +194,27 @@ CREATE TABLE IF NOT EXISTS almoxarifados (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nome TEXT NOT NULL,
   localizacao TEXT,
+  empresa_id INTEGER,
+  responsavel_id INTEGER,
   ativo INTEGER DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Almoxarifado Produtos (estoque por almoxarifado)
+CREATE TABLE IF NOT EXISTS almoxarifado_produto (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  almoxarifado_id INTEGER NOT NULL,
+  produto_id INTEGER NOT NULL,
+  quantidade_total INTEGER DEFAULT 0,
+  quantidade_reservada INTEGER DEFAULT 0,
+  estoque_minimo INTEGER DEFAULT 0,
+  necessita_gerenciar_minimo INTEGER DEFAULT 0,
+  valor_venda REAL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (almoxarifado_id) REFERENCES almoxarifados(id),
+  FOREIGN KEY (produto_id) REFERENCES produtos(id)
 );
 
 -- Contratos
@@ -389,3 +433,23 @@ INSERT INTO tipos_usuario (nome, ativo) VALUES
 ('Operador', 1),
 ('Visualizador', 1),
 ('Auditor', 1);
+
+-- Permissões de Usuários por Empresa/Almoxarifado
+CREATE TABLE IF NOT EXISTS usuarios_permissoes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  usuario_id INTEGER NOT NULL,
+  empresa_id INTEGER NOT NULL,
+  almoxarifado_id INTEGER,
+  nivel_acesso TEXT DEFAULT 'padrao' CHECK(nivel_acesso IN ('admin', 'padrao', 'leitura')),
+  ativo INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+  FOREIGN KEY (empresa_id) REFERENCES empresas(id),
+  FOREIGN KEY (almoxarifado_id) REFERENCES almoxarifados(id)
+);
+
+-- Índices para permissões
+CREATE INDEX IF NOT EXISTS idx_usuarios_permissoes_usuario ON usuarios_permissoes(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_usuarios_permissoes_empresa ON usuarios_permissoes(empresa_id);
+CREATE INDEX IF NOT EXISTS idx_usuarios_permissoes_almoxarifado ON usuarios_permissoes(almoxarifado_id);

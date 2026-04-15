@@ -1,7 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { api } from '../lib/api';
+import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface PeriodoAno {
   id: number;
@@ -14,28 +18,45 @@ interface PeriodoAno {
   ativo: boolean;
 }
 
-const initialPeriodos: PeriodoAno[] = [
-  { id: 1, periodoAno: '01/2026', mes: 1, ano: 2026, diasUteisSemana: 22, sabadosUteis: 4, status: 'ABERTO', ativo: true },
-  { id: 2, periodoAno: '02/2026', mes: 2, ano: 2026, diasUteisSemana: 20, sabadosUteis: 4, status: 'ABERTO', ativo: true },
-  { id: 3, periodoAno: '03/2026', mes: 3, ano: 2026, diasUteisSemana: 22, sabadosUteis: 5, status: 'ABERTO', ativo: true },
-  { id: 4, periodoAno: '04/2026', mes: 4, ano: 2026, diasUteisSemana: 21, sabadosUteis: 4, status: 'FECHADO', ativo: true },
-  { id: 5, periodoAno: '01/2025', mes: 1, ano: 2025, diasUteisSemana: 22, sabadosUteis: 4, status: 'FECHADO', ativo: true },
-  { id: 6, periodoAno: '02/2025', mes: 2, ano: 2025, diasUteisSemana: 20, sabadosUteis: 4, status: 'FECHADO', ativo: true },
-];
-
-interface PeriodoAnoProps {
-  activeSection?: string;
-  onSectionChange?: (section: string) => void;
+function mapPeriodo(r: Record<string, unknown>): PeriodoAno {
+  return {
+    id: Number(r.id),
+    periodoAno: String(r.periodo_ano ?? r.periodoAno ?? ''),
+    mes: Number(r.mes ?? 0),
+    ano: Number(r.ano ?? 0),
+    diasUteisSemana: Number(r.dias_uteis_semana ?? 0),
+    sabadosUteis: Number(r.sabados_uteis ?? 0),
+    status: (String(r.status ?? 'ABERTO') as PeriodoAno['status']),
+    ativo: ativoFromDb(r.ativo),
+  };
 }
 
-export const PeriodoAnoPage: React.FC<PeriodoAnoProps> = () => {
-  const [periodos, setPeriodos] = useState<PeriodoAno[]>(initialPeriodos);
+export const PeriodoAnoPage = () => {
+  const { toast } = useAppFeedback();
+  const [periodos, setPeriodos] = useState<PeriodoAno[]>([]);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPeriodo, setEditingPeriodo] = useState<PeriodoAno | null>(null);
   const [formData, setFormData] = useState({ mes: 1, ano: 2026, diasUteisSemana: 22, sabadosUteis: 4 });
   const itemsPerPage = 5;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const raw = await api.list<Record<string, unknown>>('periodos_ano');
+      setPeriodos(raw.map(mapPeriodo));
+    } catch (e) {
+      setPeriodos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const filteredPeriodos = useMemo(() => {
     return periodos.filter(periodo => 
@@ -50,18 +71,35 @@ export const PeriodoAnoPage: React.FC<PeriodoAnoProps> = () => {
 
   const totalPages = Math.ceil(filteredPeriodos.length / itemsPerPage);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const periodoAnoStr = `${String(formData.mes).padStart(2, '0')}/${formData.ano}`;
+    const payload = {
+      periodo_ano: periodoAnoStr,
+      mes: formData.mes,
+      ano: formData.ano,
+      dias_uteis_semana: formData.diasUteisSemana,
+      sabados_uteis: formData.sabadosUteis,
+    };
     
-    if (editingPeriodo) {
-      setPeriodos(prev => prev.map(p => p.id === editingPeriodo.id ? { ...formData, periodoAno: periodoAnoStr, id: editingPeriodo.id, status: editingPeriodo.status, ativo: editingPeriodo.ativo } : p));
-    } else {
-      const newId = Math.max(...periodos.map(p => p.id), 0) + 1;
-      setPeriodos(prev => [...prev, { ...formData, periodoAno: periodoAnoStr, id: newId, status: 'ABERTO', ativo: true }]);
+    try {
+      if (editingPeriodo) {
+        const updated = await api.update<Record<string, unknown>>('periodos_ano', editingPeriodo.id, {
+          ...payload,
+          ativo: ativoToDb(editingPeriodo.ativo),
+        });
+        setPeriodos(prev => prev.map(p => p.id === editingPeriodo.id ? mapPeriodo(updated) : p));
+        toast.success('Período atualizado.');
+      } else {
+        const created = await api.create<Record<string, unknown>>('periodos_ano', { ...payload, status: 'ABERTO', ativo: 1 });
+        setPeriodos(prev => [...prev, mapPeriodo(created)]);
+        toast.success('Período cadastrado.');
+      }
+      setIsModalOpen(false);
+      setEditingPeriodo(null);
+      setFormData({ mes: 1, ano: 2026, diasUteisSemana: 22, sabadosUteis: 4 });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao salvar');
     }
-    setIsModalOpen(false);
-    setEditingPeriodo(null);
-    setFormData({ mes: 1, ano: 2026, diasUteisSemana: 22, sabadosUteis: 4 });
   };
 
   const handleEdit = (periodo: PeriodoAno) => {
@@ -88,7 +126,15 @@ export const PeriodoAnoPage: React.FC<PeriodoAnoProps> = () => {
     }
   };
 
-  const content = (
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <p className="text-slate-500">Carregando...</p>
+      </div>
+    );
+  }
+
+  return (
     <>
       <nav className="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium tracking-wide">
         <span className="hover:text-emerald-600 cursor-pointer">Página Inicial</span>
@@ -106,13 +152,13 @@ export const PeriodoAnoPage: React.FC<PeriodoAnoProps> = () => {
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
         <div className="flex-1 flex gap-2">
           <div className="relative flex-1">
-            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
               placeholder="Pesquisar período (MM/AAAA)"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -130,12 +176,12 @@ export const PeriodoAnoPage: React.FC<PeriodoAnoProps> = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#f5f5f5]">
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-20">ID</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Período</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Dias Úteis Semana</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Sábados Úteis</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
-                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-24">Dias Úteis Semana</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-24">Sábados Úteis</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Status</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -256,6 +302,4 @@ export const PeriodoAnoPage: React.FC<PeriodoAnoProps> = () => {
       </Sheet>
     </>
   );
-
-  return <>{content}</>;
 };

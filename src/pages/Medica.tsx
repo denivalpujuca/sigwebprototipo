@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MaterialIcon } from '@/components/Icon';
+import { Search } from 'lucide-react';
 
 interface MedicaProps {
   activeSection?: string;
@@ -148,7 +149,7 @@ export const MedicaPage: React.FC<MedicaProps> = () => {
                 <p className="text-xs text-slate-500 mt-1">PCMSO - Programa de Controle Médico de Saúde Ocupacional</p>
               </div>
                 <div className="relative">
-                <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <Input
                   placeholder="Pesquisar..."
                   value={searchTerm}

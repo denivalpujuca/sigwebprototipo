@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { api } from '../lib/api';
-import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
 import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface MTR {
@@ -32,16 +32,9 @@ function mapMTR(r: Record<string, unknown>): MTR {
   };
 }
 
-interface ResiduosMTRProps {
-  activeSection?: string;
-  onSectionChange?: (section: string) => void;
-}
-
 export const ResiduosMTRPage: React.FC = () => {
-  const { toast, confirm } = useAppFeedback();
+  const { toast } = useAppFeedback();
   const [mtrs, setMtrs] = useState<MTR[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,16 +43,11 @@ export const ResiduosMTRPage: React.FC = () => {
   const itemsPerPage = 5;
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
     try {
       const raw = await api.list<Record<string, unknown>>('residuos_mtr');
       setMtrs(raw.map(mapMTR));
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : 'Erro ao carregar MTRs');
       setMtrs([]);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -130,21 +118,6 @@ export const ResiduosMTRPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    const ok = await confirm({
-      title: 'Excluir MTR?',
-      description: 'Deseja realmente excluir este registro?',
-    });
-    if (!ok) return;
-    try {
-      await api.delete('residuos_mtr', id);
-      setMtrs(prev => prev.filter(x => x.id !== id));
-      toast.destructive('MTR excluído.');
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao excluir');
-    }
-  };
-
   const handleAdd = () => {
     setEditingMtr(null);
     setFormData({ codigo: '', residuo: '', classe: '', quantidade: 0, unidade: 'kg', transportador: '', dataEmissao: '', status: 'EMITIDO' });
@@ -169,13 +142,13 @@ export const ResiduosMTRPage: React.FC = () => {
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
         <div className="flex-1 flex gap-2">
           <div className="relative flex-1">
-            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
               placeholder="Pesquisar MTR"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { api } from '../lib/api';
@@ -36,6 +37,7 @@ interface UsuariosPageProps {
 export const UsuariosPage: React.FC<UsuariosPageProps> = () => {
 	const { toast, confirm } = useAppFeedback();
 	const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+	const [tiposUsuario, setTiposUsuario] = useState<{ id: number; nome: string }[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -43,8 +45,12 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = () => {
 		setLoading(true);
 		setLoadError(null);
 		try {
-			const raw = await api.list<Record<string, unknown>>('usuarios');
+			const [raw, tiposRaw] = await Promise.all([
+				api.list<Record<string, unknown>>('usuarios'),
+				api.list<Record<string, unknown>>('tipos_usuario'),
+			]);
 			setUsuarios(raw.map(mapUsuario));
+			setTiposUsuario(tiposRaw.filter((t) => t.ativo === 1).map((t) => ({ id: Number(t.id), nome: String(t.nome) })));
 		} catch (e) {
 			setLoadError(e instanceof Error ? e.message : 'Erro ao carregar usuários');
 			setUsuarios([]);
@@ -172,13 +178,13 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = () => {
 			<div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
 				<div className="flex-1 flex gap-2">
 					<div className="relative flex-1">
-						<MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+						<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
 						<input
 							type="text"
 							placeholder="Pesquisar usuário"
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
-							className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+							className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
 						/>
 					</div>
 				</div>
@@ -193,14 +199,14 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = () => {
 					<table className="w-full text-left border-collapse">
 						<thead>
 							<tr className="bg-[#f5f5f5]">
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-20">ID</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nome</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Email</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">CPF</th>
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Tipo</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-24">Tipo</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Último Acesso</th>
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Status</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Ações</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-slate-100">
@@ -332,11 +338,9 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = () => {
 									<SelectValue placeholder="Selecione..." />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="Administrador">Administrador</SelectItem>
-									<SelectItem value="Gerente">Gerente</SelectItem>
-									<SelectItem value="Operador">Operador</SelectItem>
-									<SelectItem value="Visualizador">Visualizador</SelectItem>
-									<SelectItem value="Auditor">Auditor</SelectItem>
+									{tiposUsuario.map((tipo) => (
+										<SelectItem key={tipo.id} value={tipo.nome}>{tipo.nome}</SelectItem>
+									))}
 								</SelectContent>
 							</Select>
 						</div>

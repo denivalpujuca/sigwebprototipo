@@ -29,7 +29,6 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { api } from '../lib/api';
 import { ativoFromDb } from '../lib/d1Utils';
-import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Servico {
   id: number;
@@ -103,19 +102,14 @@ interface NovoOrcamentoProps {
 }
 
 export const NovoOrcamentoPage: React.FC<NovoOrcamentoProps> = ({ onVoltar, onSalvar }) => {
-  const { toast } = useAppFeedback();
   const [servicos, setServicos] = useState<Servico[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
       const raw = await api.list<Record<string, unknown>>('servicos');
       setServicos(raw.map(mapServico));
     } catch (e) {
       setServicos([]);
-    } finally {
-      setLoading(false);
     }
   }, []);
 

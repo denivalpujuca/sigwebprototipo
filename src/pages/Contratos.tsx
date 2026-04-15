@@ -1,7 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { api } from '../lib/api';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
 
 interface Contrato {
   id: number;
@@ -15,27 +18,46 @@ interface Contrato {
   status: 'ATIVO' | 'EXPIRADO' | 'CANCELADO';
 }
 
-const initialContratos: Contrato[] = [
-  { id: 1, numero: '0000001/2026', cliente: 'João Silva', empresa: 'Tech Solutions', tipo: 'Serviços', valor: 18000, dataInicio: '2024-01-01', dataFim: '2024-12-31', status: 'ATIVO' },
-  { id: 2, numero: '0000002/2026', cliente: 'Empresa ABC Ltda', empresa: 'Auto Peças Delta', tipo: 'Fornecimento', valor: 50000, dataInicio: '2024-02-01', dataFim: '2025-01-31', status: 'ATIVO' },
-  { id: 3, numero: '0000003/2026', cliente: 'Maria Santos', empresa: 'Serviços ABC', tipo: 'Locação', valor: 25000, dataInicio: '2023-06-01', dataFim: '2024-05-31', status: 'EXPIRADO' },
-  { id: 4, numero: '0000004/2026', cliente: 'XYZ Comercial', empresa: 'Logística XYZ', tipo: 'Frete', valor: 80000, dataInicio: '2024-03-01', dataFim: '2025-02-28', status: 'ATIVO' },
-  { id: 5, numero: '0000005/2026', cliente: 'Pedro Oliveira', empresa: 'Construtora Mega', tipo: 'Serviços', valor: 35000, dataInicio: '2024-04-01', dataFim: '2024-09-30', status: 'CANCELADO' },
-];
-
-interface ContratosProps {
-  activeSection?: string;
-  onSectionChange?: (section: string) => void;
+function mapContrato(r: Record<string, unknown>): Contrato {
+  return {
+    id: Number(r.id),
+    numero: String(r.numero ?? ''),
+    cliente: String(r.cliente ?? ''),
+    empresa: String(r.empresa ?? ''),
+    tipo: String(r.tipo ?? ''),
+    valor: Number(r.valor ?? 0),
+    dataInicio: String(r.data_inicio ?? r.dataInicio ?? ''),
+    dataFim: String(r.data_fim ?? r.dataFim ?? ''),
+    status: (String(r.status ?? 'ATIVO') as Contrato['status']),
+  };
 }
 
-export const ContratosPage: React.FC<ContratosProps> = () => {
-  const [contratos, setContratos] = useState<Contrato[]>(initialContratos);
+export const ContratosPage: React.FC = () => {
+  const { toast } = useAppFeedback();
+  const [contratos, setContratos] = useState<Contrato[]>([]);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContrato, setEditingContrato] = useState<Contrato | null>(null);
   const [formData, setFormData] = useState<{ numero: string; cliente: string; empresa: string; tipo: string; valor: number; dataInicio: string; dataFim: string; status: 'ATIVO' | 'EXPIRADO' | 'CANCELADO' }>({ numero: '', cliente: '', empresa: '', tipo: '', valor: 0, dataInicio: '', dataFim: '', status: 'ATIVO' });
   const itemsPerPage = 5;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const raw = await api.list<Record<string, unknown>>('contratos');
+      setContratos(raw.map(mapContrato));
+    } catch (e) {
+      setContratos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const filteredContratos = useMemo(() => {
     return contratos.filter(contrato => 
@@ -52,16 +74,33 @@ export const ContratosPage: React.FC<ContratosProps> = () => {
 
   const totalPages = Math.ceil(filteredContratos.length / itemsPerPage);
 
-  const handleSave = () => {
-    if (editingContrato) {
-      setContratos(prev => prev.map(c => c.id === editingContrato.id ? { ...formData, id: editingContrato.id } : c));
-    } else {
-      const newId = Math.max(...contratos.map(c => c.id), 0) + 1;
-      setContratos(prev => [...prev, { ...formData, id: newId }]);
+  const handleSave = async () => {
+    try {
+      const payload = {
+        numero: formData.numero,
+        cliente: formData.cliente,
+        empresa: formData.empresa,
+        tipo: formData.tipo,
+        valor: formData.valor,
+        data_inicio: formData.dataInicio,
+        data_fim: formData.dataFim,
+        status: formData.status,
+      };
+      if (editingContrato) {
+        const updated = await api.update<Record<string, unknown>>('contratos', editingContrato.id, payload);
+        setContratos(prev => prev.map(c => c.id === editingContrato.id ? mapContrato(updated) : c));
+        toast.success('Contrato atualizado.');
+      } else {
+        const created = await api.create<Record<string, unknown>>('contratos', payload);
+        setContratos(prev => [...prev, mapContrato(created)]);
+        toast.success('Contrato cadastrado.');
+      }
+      setIsModalOpen(false);
+      setEditingContrato(null);
+      setFormData({ numero: '', cliente: '', empresa: '', tipo: '', valor: 0, dataInicio: '', dataFim: '', status: 'ATIVO' });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao salvar');
     }
-    setIsModalOpen(false);
-    setEditingContrato(null);
-    setFormData({ numero: '', cliente: '', empresa: '', tipo: '', valor: 0, dataInicio: '', dataFim: '', status: 'ATIVO' });
   };
 
   const handleEdit = (contrato: Contrato) => {
@@ -70,14 +109,17 @@ export const ContratosPage: React.FC<ContratosProps> = () => {
     setIsModalOpen(true);
   };
 
-  const handleToggle = (id: number) => {
-    setContratos(prev => prev.map(c => {
-      if (c.id === id) {
-        const newStatus = c.status === 'ATIVO' ? 'CANCELADO' : 'ATIVO';
-        return { ...c, status: newStatus };
-      }
-      return c;
-    }));
+  const handleToggle = async (id: number) => {
+    const c = contratos.find(x => x.id === id);
+    if (!c) return;
+    const newStatus = c.status === 'ATIVO' ? 'CANCELADO' : 'ATIVO';
+    try {
+      const updated = await api.update<Record<string, unknown>>('contratos', id, { status: newStatus });
+      setContratos(prev => prev.map(x => x.id === id ? mapContrato(updated) : x));
+      toast.success('Status atualizado.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+    }
   };
 
   const handleAdd = () => {
@@ -104,13 +146,13 @@ export const ContratosPage: React.FC<ContratosProps> = () => {
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
         <div className="flex-1 flex gap-2">
           <div className="relative flex-1">
-            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
               placeholder="Pesquisar contrato"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -139,7 +181,11 @@ export const ContratosPage: React.FC<ContratosProps> = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedContratos.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-8 text-center text-slate-500">Carregando...</td>
+                </tr>
+              ) : paginatedContratos.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
                 </tr>

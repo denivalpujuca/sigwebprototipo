@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { api } from '../lib/api';
 import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
@@ -162,13 +163,13 @@ export const FornecedoresPage: React.FC<FornecedoresProps> = () => {
 			<div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
 				<div className="flex-1 flex gap-2">
 					<div className="relative flex-1">
-						<MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+						<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
 						<input
 							type="text"
 							placeholder="Pesquisar fornecedor"
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
-							className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+							className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
 						/>
 					</div>
 				</div>
@@ -183,13 +184,14 @@ export const FornecedoresPage: React.FC<FornecedoresProps> = () => {
 					<table className="w-full text-left border-collapse">
 						<thead>
 							<tr className="bg-[#f5f5f5]">
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-20">ID</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nome</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">CNPJ</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Email</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Telefone</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Endereço</th>
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Status</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Ações</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-slate-100">
@@ -208,6 +210,7 @@ export const FornecedoresPage: React.FC<FornecedoresProps> = () => {
 							) : (
 								paginatedFornecedores.map((fornecedor) => (
 									<tr key={fornecedor.id} className="hover:bg-slate-50 transition-colors">
+										<td className="px-4 py-4 text-sm text-slate-500 text-center">{fornecedor.id}</td>
 										<td className="px-4 py-4 text-sm font-bold text-slate-900">{fornecedor.nome}</td>
 										<td className="px-4 py-4 text-sm font-mono text-slate-500">{fornecedor.cnpj}</td>
 										<td className="px-4 py-4 text-sm text-slate-500">{fornecedor.email}</td>

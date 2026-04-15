@@ -32,6 +32,13 @@ export const api = {
 		return (await res.json()) as T;
 	},
 
+	async getUrl<T>(url: string): Promise<T[]> {
+		const res = await fetch(`${getApiBase()}${url}`);
+		if (!res.ok) throw new Error(await parseError(res));
+		const data: unknown = await res.json();
+		return Array.isArray(data) ? (data as T[]) : [];
+	},
+
 	async create<T>(table: string, payload: Record<string, unknown>): Promise<T> {
 		const res = await fetch(`${getApiBase()}/api/${table}`, {
 			method: 'POST',
@@ -43,13 +50,18 @@ export const api = {
 	},
 
 	async update<T>(table: string, id: number, payload: Record<string, unknown>): Promise<T> {
-		const res = await fetch(`${getApiBase()}/api/${table}/${id}`, {
+		const url = `${getApiBase()}/api/${table}/${id}`;
+		console.log('API UPDATE:', url, 'payload:', payload);
+		const res = await fetch(url, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(payload),
 		});
+		console.log('API UPDATE response status:', res.status);
+		const result = await res.json();
+		console.log('API UPDATE response:', result);
 		if (!res.ok) throw new Error(await parseError(res));
-		return (await res.json()) as T;
+		return result as T;
 	},
 
 	async delete(table: string, id: number): Promise<void> {

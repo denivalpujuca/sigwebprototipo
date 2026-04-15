@@ -8,6 +8,7 @@ import {
 	DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { MaterialIcon } from '@/components/Icon';
 
 type ToastVariant = 'success' | 'error' | 'destructive';
 
@@ -111,10 +112,13 @@ export function AppFeedbackProvider({ children }: { children: React.ReactNode })
 			</div>
 			<Dialog open={confirmOpen} onOpenChange={onDialogOpenChange}>
 				<DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
-					<DialogHeader>
+					<DialogHeader className="flex flex-row items-center gap-3">
+						<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+							<MaterialIcon name="warning" size={20} className="text-amber-600" />
+						</div>
 						<DialogTitle>{confirmOpts.title}</DialogTitle>
-						{confirmOpts.description ? <DialogDescription>{confirmOpts.description}</DialogDescription> : null}
 					</DialogHeader>
+					{confirmOpts.description ? <DialogDescription>{confirmOpts.description}</DialogDescription> : null}
 					<DialogFooter className="gap-2 sm:gap-0">
 						<button
 							type="button"

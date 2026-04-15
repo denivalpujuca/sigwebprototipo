@@ -19,9 +19,26 @@ CREATE TABLE IF NOT EXISTS almoxarifados (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nome TEXT NOT NULL,
   localizacao TEXT,
+  empresa_id INTEGER,
+  responsavel_id INTEGER,
   ativo INTEGER DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS almoxarifado_produto (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  almoxarifado_id INTEGER NOT NULL,
+  produto_id INTEGER NOT NULL,
+  quantidade_total INTEGER DEFAULT 0,
+  quantidade_reservada INTEGER DEFAULT 0,
+  estoque_minimo INTEGER DEFAULT 0,
+  necessita_gerenciar_minimo INTEGER DEFAULT 0,
+  valor_venda REAL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (almoxarifado_id) REFERENCES almoxarifados(id),
+  FOREIGN KEY (produto_id) REFERENCES produtos(id)
 );
 
 CREATE TABLE IF NOT EXISTS contratos (

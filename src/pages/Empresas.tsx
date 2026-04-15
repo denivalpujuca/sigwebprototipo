@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { api } from '../lib/api';
 import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
@@ -162,13 +163,13 @@ export const EmpresasPage: React.FC<EmpresasProps> = () => {
 			<div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
 				<div className="flex-1 flex gap-2">
 					<div className="relative flex-1">
-						<MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+						<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
 						<input
 							type="text"
 							placeholder="Pesquisar empresa"
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
-							className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+							className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
 						/>
 					</div>
 				</div>
@@ -183,12 +184,13 @@ export const EmpresasPage: React.FC<EmpresasProps> = () => {
 					<table className="w-full text-left border-collapse">
 						<thead>
 							<tr className="bg-[#f5f5f5]">
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nome</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-20">ID</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">CNPJ</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nome</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Email</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Telefone</th>
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Status</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Ações</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-slate-100">
@@ -207,8 +209,9 @@ export const EmpresasPage: React.FC<EmpresasProps> = () => {
 							) : (
 								paginatedEmpresas.map((empresa) => (
 									<tr key={empresa.id} className="hover:bg-slate-50 transition-colors">
-										<td className="px-4 py-4 text-sm font-bold text-slate-900">{empresa.nome}</td>
+										<td className="px-4 py-4 text-sm text-slate-500 text-center">{empresa.id}</td>
 										<td className="px-4 py-4 text-sm font-mono text-slate-500">{empresa.cnpj}</td>
+										<td className="px-4 py-4 text-sm font-bold text-slate-900">{empresa.nome}</td>
 										<td className="px-4 py-4 text-sm text-slate-500">{empresa.email}</td>
 										<td className="px-4 py-4 text-sm text-slate-500">{empresa.telefone}</td>
 										<td className="px-4 py-4 text-center">
@@ -282,6 +285,15 @@ export const EmpresasPage: React.FC<EmpresasProps> = () => {
 						className="mt-6 space-y-4"
 					>
 						<div>
+							<label className="block text-sm font-semibold text-slate-700 mb-1">CNPJ</label>
+							<input
+								type="text"
+								value={formData.cnpj}
+								onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+								className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+							/>
+						</div>
+						<div>
 							<label className="block text-sm font-semibold text-slate-700 mb-1">Nome</label>
 							<input
 								type="text"
@@ -289,15 +301,6 @@ export const EmpresasPage: React.FC<EmpresasProps> = () => {
 								onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
 								className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
 								required
-							/>
-						</div>
-						<div>
-							<label className="block text-sm font-semibold text-slate-700 mb-1">CNPJ</label>
-							<input
-								type="text"
-								value={formData.cnpj}
-								onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-								className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
 							/>
 						</div>
 						<div>

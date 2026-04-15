@@ -1,42 +1,89 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { api } from '../lib/api';
+import { useAppFeedback } from '@/context/AppFeedbackContext';
+import { useNotificacoes } from '@/context/NotificacaoContext';
 
 interface Requisicao {
   id: number;
   empresa: string;
   departamento: string;
   solicitante: string;
-  data: Date;
+  solicitante_id: number | null;
+  data: string;
   itens: number;
-  status: 'pendente' | 'aprovado' | 'rejeitado' | 'entregue';
+  status: 'pendente' | 'separado' | 'aprovado' | 'rejeitado' | 'entregue';
 }
 
-const initialRequisicoes: Requisicao[] = [
-  { id: 1, empresa: 'Gestão Urbana S/A', departamento: 'Recursos Humanos', solicitante: 'Maria Santos', data: new Date('2026-04-01'), itens: 2, status: 'aprovado' },
-  { id: 2, empresa: 'Serviços Metropolitanos Ltda', departamento: 'Manutenção', solicitante: 'Pedro Oliveira', data: new Date('2026-04-02'), itens: 2, status: 'pendente' },
-];
-
-interface RequisicaoDepartamentoProps {
-  activeSection?: string;
-  onSectionChange?: (section: string) => void;
+interface ItemRequisicao {
+  id: number;
+  requisicao_id: number;
+  produto_nome: string;
+  quantidade: number;
+  separado: number;
+  verificado: number;
+  observacao: string | null;
 }
 
-export const RequisicaoDepartamentoPage: React.FC<RequisicaoDepartamentoProps> = () => {
-  const [requisicoes, setRequisicoes] = useState<Requisicao[]>(initialRequisicoes);
+function mapRequisicao(r: Record<string, unknown>): Requisicao {
+  return {
+    id: Number(r.id),
+    empresa: String(r.empresa ?? ''),
+    departamento: String(r.departamento ?? ''),
+    solicitante: String(r.solicitante ?? ''),
+    solicitante_id: r.solicitante_id ? Number(r.solicitante_id) : null,
+    data: String(r.data ?? ''),
+    itens: Number(r.itens ?? 0),
+    status: (String(r.status ?? 'pendente') as Requisicao['status']),
+  };
+}
+
+export const RequisicaoDepartamentoPage: React.FC = () => {
+  const { toast } = useAppFeedback();
+  const { createNotification } = useNotificacoes();
+  const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
+  const [itensRequisicao, setItensRequisicao] = useState<ItemRequisicao[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRequisicao, setEditingRequisicao] = useState<Requisicao | null>(null);
-  const [formData, setFormData] = useState<{ empresa: string; departamento: string; solicitante: string; itens: number; status: 'pendente' | 'aprovado' | 'rejeitado' | 'entregue' }>({ empresa: '', departamento: '', solicitante: '', itens: 1, status: 'pendente' });
+  const [isItensModalOpen, setIsItensModalOpen] = useState(false);
+  const [selectedRequisicao, setSelectedRequisicao] = useState<Requisicao | null>(null);
   const itemsPerPage = 5;
 
+  const load = useCallback(async () => {
+    try {
+      const raw = await api.list<Record<string, unknown>>('requisicoes_departamento');
+      setRequisicoes(raw.map(mapRequisicao));
+    } catch (e) {
+      setRequisicoes([]);
+    }
+  }, []);
+
+  const loadItens = useCallback(async (requisicaoId: number) => {
+    try {
+      const data = await api.getUrl<ItemRequisicao>(`/api/requisicoes_departamento/${requisicaoId}/itens`);
+      setItensRequisicao(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setItensRequisicao([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   const filteredRequisicoes = useMemo(() => {
-    return requisicoes.filter(req => 
-      req.empresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.departamento.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [requisicoes, searchTerm]);
+    return requisicoes.filter(req => {
+      const matchesStatus = statusFilter === 'todos' || req.status === statusFilter;
+      const matchesSearch = 
+        req.empresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        req.departamento.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        req.solicitante.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesStatus && matchesSearch;
+    });
+  }, [requisicoes, searchTerm, statusFilter]);
 
   const paginatedRequisicoes = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -45,43 +92,70 @@ export const RequisicaoDepartamentoPage: React.FC<RequisicaoDepartamentoProps> =
 
   const totalPages = Math.ceil(filteredRequisicoes.length / itemsPerPage);
 
-  const handleSave = () => {
-    if (editingRequisicao) {
-      setRequisicoes(prev => prev.map(r => r.id === editingRequisicao.id ? { ...formData, id: editingRequisicao.id } as Requisicao : r));
-    } else {
-      const newId = Math.max(...requisicoes.map(r => r.id), 0) + 1;
-      setRequisicoes(prev => [...prev, { ...formData, id: newId, data: new Date() } as Requisicao]);
+  const handleViewItens = async (req: Requisicao) => {
+    setSelectedRequisicao(req);
+    await loadItens(req.id);
+    setItensRequisicao(prev => prev.map(item => ({ ...item, separado: 0 })));
+    setIsItensModalOpen(true);
+  };
+
+  const handleToggleSeparar = async (item: ItemRequisicao) => {
+    try {
+      const novoValor = item.separado ? 0 : 1;
+      await api.update('itens_requisicao', item.id, { separado: novoValor });
+      setItensRequisicao(prev => prev.map(i => 
+        i.id === item.id ? { ...i, separado: novoValor } : i
+      ));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar item');
     }
-    setIsModalOpen(false);
-    setEditingRequisicao(null);
-    setFormData({ empresa: '', departamento: '', solicitante: '', itens: 1, status: 'pendente' });
   };
 
-  const handleEdit = (req: Requisicao) => {
-    setEditingRequisicao(req);
-    setFormData({ empresa: req.empresa, departamento: req.departamento, solicitante: req.solicitante, itens: req.itens, status: req.status });
-    setIsModalOpen(true);
-  };
-
-  const handleToggle = (id: number) => {
-    setRequisicoes(prev => prev.map(r => {
-      if (r.id === id) {
-        const statusOrder: Requisicao['status'][] = ['pendente', 'aprovado', 'entregue'];
-        const currentIndex = statusOrder.indexOf(r.status);
-        const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
-        return { ...r, status: nextStatus };
+  const handleFecharSeparacao = async () => {
+    if (!selectedRequisicao) return;
+    try {
+      await api.update('requisicoes_departamento', selectedRequisicao.id, { status: 'separado' });
+      setRequisicoes(prev => prev.map(r => 
+        r.id === selectedRequisicao.id ? { ...r, status: 'separado' as const } : r
+      ));
+      
+      if (selectedRequisicao.solicitante_id) {
+        await createNotification({
+          usuario_id: selectedRequisicao.solicitante_id,
+          titulo: 'Separação Finalizada',
+          mensagem: `Os itens da requisição #${selectedRequisicao.id} foram separados e estão prontos para retirada.`,
+          tipo: 'success',
+          link: '/requisicao-departamento',
+        });
       }
-      return r;
-    }));
+      
+      toast.success('Separação fechada com sucesso!');
+      setIsItensModalOpen(false);
+      setSelectedRequisicao(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao fechar separação');
+    }
   };
 
-  const handleAdd = () => {
-    setEditingRequisicao(null);
-    setFormData({ empresa: '', departamento: '', solicitante: '', itens: 1, status: 'pendente' });
-    setIsModalOpen(true);
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      pendente: 'bg-yellow-100 text-yellow-700',
+      separado: 'bg-blue-100 text-blue-700',
+      aprovado: 'bg-emerald-100 text-emerald-700',
+      rejeitado: 'bg-red-100 text-red-700',
+      entregue: 'bg-purple-100 text-purple-700',
+    };
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${styles[status] || 'bg-slate-100 text-slate-600'}`}>
+        {status}
+      </span>
+    );
   };
 
-  const content = (
+  const itensSeparadosCount = itensRequisicao.filter(i => i.separado === 1).length;
+  const todosSeparados = itensRequisicao.length > 0 && itensSeparadosCount === itensRequisicao.length;
+
+  return (
     <>
       <nav className="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium tracking-wide">
         <span className="hover:text-emerald-600 cursor-pointer">Página Inicial</span>
@@ -97,25 +171,30 @@ export const RequisicaoDepartamentoPage: React.FC<RequisicaoDepartamentoProps> =
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+          className="px-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+        >
+          <option value="todos">Todos os Status</option>
+          <option value="pendente">Pendente</option>
+          <option value="separado">Separado</option>
+          <option value="aprovado">Aprovado</option>
+          <option value="rejeitado">Rejeitado</option>
+          <option value="entregue">Entregue</option>
+        </select>
         <div className="flex-1 flex gap-2">
           <div className="relative flex-1">
-            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
               placeholder="Pesquisar requisição"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
           </div>
         </div>
-        <button
-          onClick={handleAdd}
-          className="bg-emerald-600 hover:bg-emerald-700 px-6 py-2.5 text-white font-bold rounded-md flex items-center gap-2 transition-colors"
-        >
-          <MaterialIcon name="add" size={20} />
-          Adicionar
-        </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
@@ -128,6 +207,7 @@ export const RequisicaoDepartamentoPage: React.FC<RequisicaoDepartamentoProps> =
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Departamento</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Solicitante</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Data</th>
+                <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Itens</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
                 <th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
               </tr>
@@ -135,7 +215,7 @@ export const RequisicaoDepartamentoPage: React.FC<RequisicaoDepartamentoProps> =
             <tbody className="divide-y divide-slate-100">
               {paginatedRequisicoes.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
+                  <td colSpan={8} className="px-6 py-8 text-center text-slate-500">Nenhum registro encontrado</td>
                 </tr>
               ) : (
                 paginatedRequisicoes.map(req => (
@@ -144,21 +224,20 @@ export const RequisicaoDepartamentoPage: React.FC<RequisicaoDepartamentoProps> =
                     <td className="px-4 py-4 text-sm text-slate-500">{req.empresa}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{req.departamento}</td>
                     <td className="px-4 py-4 text-sm text-slate-500">{req.solicitante}</td>
-                    <td className="px-4 py-4 text-sm text-slate-500">{req.data.toLocaleDateString('pt-BR')}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{req.data ? new Date(req.data).toLocaleDateString('pt-BR') : '-'}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500 text-center">{req.itens}</td>
+                    <td className="px-4 py-4 text-center">{getStatusBadge(req.status)}</td>
                     <td className="px-4 py-4 text-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold capitalize ${req.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' : req.status === 'aprovado' ? 'bg-emerald-100 text-emerald-700' : req.status === 'entregue' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                        {req.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => handleEdit(req)} className="p-1.5 text-slate-500 hover:text-emerald-600 transition-colors">
-                          <MaterialIcon name="edit" size={20} />
-                        </button>
-                        <button onClick={() => handleToggle(req.id)} className={`p-1.5 transition-colors ${req.status === 'pendente' ? 'text-slate-500 hover:text-emerald-600' : 'text-emerald-600 hover:opacity-70'}`}>
-                          <MaterialIcon name={req.status === 'pendente' ? 'block' : 'check'} size={20} />
-                        </button>
-                      </div>
+                      <button 
+                        onClick={() => handleViewItens(req)} 
+                        className={`px-3 py-1.5 text-white text-xs font-semibold rounded transition-colors ${
+                          req.status === 'separado' 
+                            ? 'bg-blue-600 hover:bg-blue-700' 
+                            : 'bg-emerald-600 hover:bg-emerald-700'
+                        }`}
+                      >
+                        {req.status === 'separado' ? 'Entregar' : 'Separar'}
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -184,35 +263,79 @@ export const RequisicaoDepartamentoPage: React.FC<RequisicaoDepartamentoProps> =
         </div>
       </div>
 
-      <Sheet open={isModalOpen} onOpenChange={(open) => { if (!open) setIsModalOpen(false); }}>
-        <SheetContent className="sm:max-w-[540px]">
+      <Sheet open={isItensModalOpen} onOpenChange={(open) => { if (!open) { setIsItensModalOpen(false); setSelectedRequisicao(null); } }}>
+        <SheetContent className="sm:max-w-[500px]">
           <SheetHeader>
-            <SheetTitle>{editingRequisicao ? 'Editar Requisição' : 'Nova Requisição'}</SheetTitle>
+            <SheetTitle>Separação de Itens</SheetTitle>
+            <p className="text-sm text-slate-500 mt-1">
+              Requisição #{selectedRequisicao?.id} • {selectedRequisicao?.solicitante}
+            </p>
           </SheetHeader>
-          <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="mt-6 space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Empresa</label>
-              <input type="text" value={formData.empresa} onChange={(e) => setFormData({ ...formData, empresa: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Departamento</label>
-                <input type="text" value={formData.departamento} onChange={(e) => setFormData({ ...formData, departamento: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Solicitante</label>
-                <input type="text" value={formData.solicitante} onChange={(e) => setFormData({ ...formData, solicitante: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm" required />
-              </div>
-            </div>
-            <div className="flex gap-3 pt-4">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md">Cancelar</button>
-              <button type="submit" className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md">Salvar</button>
-            </div>
-          </form>
+          
+          <div className="mt-4 bg-slate-100 rounded-lg px-4 py-3 flex justify-between items-center">
+            <span className="text-sm text-slate-600">
+              {itensSeparadosCount} de {itensRequisicao.length} itens separados
+            </span>
+            <span className={`text-sm font-bold ${itensSeparadosCount === itensRequisicao.length && itensRequisicao.length > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+              {itensSeparadosCount === itensRequisicao.length && itensRequisicao.length > 0 ? '✓ Completo' : 'Pendente'}
+            </span>
+          </div>
+
+          <div className="mt-4 space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            {itensRequisicao.length === 0 ? (
+              <p className="text-center text-slate-500 py-8">Nenhum item nesta requisição</p>
+            ) : (
+              itensRequisicao.map(item => (
+                <div
+                  key={item.id}
+                  className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                    item.separado 
+                      ? 'bg-emerald-50 border-emerald-300' 
+                      : 'bg-white border-slate-200'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-900">
+                      <span className="text-slate-400 mr-1">{item.quantidade}x</span>
+                      {item.produto_nome}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleToggleSeparar(item)}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                      item.separado ? 'bg-emerald-500' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${
+                        item.separado ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="mt-6 pt-4 border-t flex gap-3">
+            {todosSeparados ? (
+              <button 
+                onClick={handleFecharSeparacao}
+                className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md transition-colors"
+              >
+                Fechar Separação
+              </button>
+            ) : (
+              <button 
+                onClick={() => { setIsItensModalOpen(false); setSelectedRequisicao(null); }}
+                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md"
+              >
+                Fechar
+              </button>
+            )}
+          </div>
         </SheetContent>
       </Sheet>
     </>
   );
-
-  return <>{content}</>;
 };

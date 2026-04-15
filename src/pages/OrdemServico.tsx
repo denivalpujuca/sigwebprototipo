@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { api } from '../lib/api';
@@ -207,13 +208,13 @@ export const OrdemServicoPage: React.FC<OrdemServicoProps> = () => {
 			<div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
 				<div className="flex-1 flex gap-2">
 					<div className="relative flex-1">
-						<MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+						<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
 						<input
 							type="text"
 							placeholder="Pesquisar OS"
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
-							className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+							className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
 						/>
 					</div>
 				</div>

@@ -12,11 +12,11 @@
 		"d1:push:local": "wrangler d1 execute sigweb-db --local --file=../../sql/d1_tables_only.sql"
 	},
 	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.12.4",
+		"@cloudflare/vitest-pool-workers": "^0.14.4",
 		"@cloudflare/workers-types": "^4.20260412.1",
 		"typescript": "^5.5.2",
-		"vitest": "~3.2.0",
-		"wrangler": "^3.101.0"
+	"vitest": "^4.1.0",
+		"wrangler": "^4.82.0"
 	},
 	"dependencies": {
 		"hono": "^4.12.12"

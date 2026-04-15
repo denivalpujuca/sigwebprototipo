@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { Search } from 'lucide-react';
+import { api } from '../lib/api';
 
 interface Registro {
   id: number;
@@ -10,27 +12,42 @@ interface Registro {
   detalhe: string;
 }
 
-const initialRegistros: Registro[] = [
-  { id: 1, data: '2026-04-05 10:30:00', usuario: 'Admin', acao: 'Criação', modulo: 'Sistema', detalhe: 'Novo usuário criado' },
-  { id: 2, data: '2026-04-05 11:15:00', usuario: 'Admin', acao: 'Edição', modulo: 'Configurações', detalhe: 'Atualização de configurações' },
-];
-
-interface AuditoriaAdminProps {
-  activeSection?: string;
-  onSectionChange?: (section: string) => void;
+function mapAuditoria(r: Record<string, unknown>): Registro {
+  return {
+    id: Number(r.id),
+    data: String(r.created_at ?? r.data ?? ''),
+    usuario: String(r.usuario ?? ''),
+    acao: String(r.acao ?? ''),
+    modulo: String(r.tabela ?? r.modulo ?? ''),
+    detalhe: String(r.detalhes ?? r.detalhe ?? ''),
+  };
 }
 
-export const AuditoriaAdminPage: React.FC<AuditoriaAdminProps> = () => {
+export const AuditoriaAdminPage: React.FC = () => {
+  const [registros, setRegistros] = useState<Registro[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  const load = useCallback(async () => {
+    try {
+      const raw = await api.list<Record<string, unknown>>('auditoria');
+      setRegistros(raw.map(mapAuditoria));
+    } catch (e) {
+      setRegistros([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   const filteredRegistros = useMemo(() => {
-    return initialRegistros.filter(registro => 
+    return registros.filter(registro => 
       registro.usuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
       registro.detalhe.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [searchTerm]);
+  }, [registros, searchTerm]);
 
   const paginatedRegistros = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -57,13 +74,13 @@ export const AuditoriaAdminPage: React.FC<AuditoriaAdminProps> = () => {
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
         <div className="flex-1 flex gap-2">
           <div className="relative flex-1">
-            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
               placeholder="Pesquisar"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
           </div>
         </div>

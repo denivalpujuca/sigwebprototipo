@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
+import { Search } from 'lucide-react';
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { api } from '../lib/api';
 import { ativoFromDb, ativoToDb } from '../lib/d1Utils';
@@ -9,20 +11,38 @@ interface Produto {
 	id: number;
 	nome: string;
 	codigo: string;
-	preco: number;
-	estoque: number;
+	categoria_id: number;
+	categoria_nome?: string;
+	unidade: string;
+	foto?: string;
+	descricao?: string;
 	ativo: boolean;
 }
 
 function mapProduto(r: Record<string, unknown>): Produto {
+	const catId = Number(r.categoria_id) || 0;
+	let catNome = '';
+	if (r.categoria_nome && String(r.categoria_nome).length > 0 && String(r.categoria_nome) !== 'null') {
+		catNome = String(r.categoria_nome);
+	} else if (r.categoria && String(r.categoria).length > 0 && String(r.categoria) !== 'null') {
+		catNome = String(r.categoria);
+	}
 	return {
 		id: Number(r.id),
 		nome: String(r.nome ?? ''),
 		codigo: String(r.codigo ?? ''),
-		preco: Number(r.preco ?? 0),
-		estoque: Number(r.estoque ?? 0),
+		categoria_id: catId,
+		categoria_nome: catNome || undefined,
+		unidade: String(r.unidade ?? ''),
+		foto: r.foto ? String(r.foto) : undefined,
+		descricao: r.descricao ? String(r.descricao) : undefined,
 		ativo: ativoFromDb(r.ativo),
 	};
+}
+
+interface Categoria {
+	id: number;
+	nome: string;
 }
 
 interface ProdutosProps {
@@ -33,6 +53,7 @@ interface ProdutosProps {
 export const ProdutosPage: React.FC<ProdutosProps> = () => {
 	const { toast, confirm } = useAppFeedback();
 	const [produtos, setProdutos] = useState<Produto[]>([]);
+	const [categorias, setCategorias] = useState<Categoria[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -40,8 +61,13 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
 		setLoading(true);
 		setLoadError(null);
 		try {
-			const raw = await api.list<Record<string, unknown>>('produtos');
+			const [raw, cats] = await Promise.all([
+				api.getUrl<Record<string, unknown>>('/api/produtos?_=' + Date.now()),
+				api.list<Record<string, unknown>>('categorias_produto'),
+			]);
+			console.log('DEBUG raw produtos:', raw);
 			setProdutos(raw.map(mapProduto));
+			setCategorias(cats.map(c => ({ id: Number(c.id), nome: String(c.nome) })));
 		} catch (e) {
 			setLoadError(e instanceof Error ? e.message : 'Erro ao carregar produtos');
 			setProdutos([]);
@@ -58,7 +84,7 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingProduto, setEditingProduto] = useState<Produto | null>(null);
-	const [formData, setFormData] = useState({ nome: '', codigo: '', preco: 0, estoque: 0 });
+	const [formData, setFormData] = useState({ nome: '', codigo: '', categoria_id: 0, unidade: '', foto: '' });
 	const itemsPerPage = 5;
 
 	const filteredProdutos = useMemo(() => {
@@ -78,20 +104,35 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
 
 	const handleSave = async () => {
 		try {
-			const payload = { nome: formData.nome, codigo: formData.codigo.trim(), preco: formData.preco, estoque: formData.estoque };
-			if (editingProduto) {
-				const updated = await api.update<Record<string, unknown>>('produtos', editingProduto.id, {
+			const payload: Record<string, unknown> = { 
+				nome: formData.nome, 
+				codigo: formData.codigo.trim(),
+				categoria_id: formData.categoria_id || null,
+				unidade: formData.unidade
+			};
+			if (formData.foto) {
+				payload.foto = formData.foto;
+			}
+			
+if (editingProduto) {
+				await api.update<Record<string, unknown>>('produtos', editingProduto.id, {
 					...payload,
 					ativo: ativoToDb(editingProduto.ativo),
 				});
-				setProdutos((prev) => prev.map((p) => (p.id === editingProduto.id ? mapProduto(updated) : p)));
+				const catNome = categorias.find(c => c.id === Number(formData.categoria_id))?.nome || '';
+				setProdutos((prev) => prev.map((p) => {
+					if (p.id === editingProduto.id) {
+						return mapProduto({ ...p, ...payload, categoria_nome: catNome });
+					}
+					return p;
+				}));
 			} else {
 				const created = await api.create<Record<string, unknown>>('produtos', { ...payload, ativo: 1 });
 				setProdutos((prev) => [...prev, mapProduto(created)]);
 			}
 			setIsModalOpen(false);
 			setEditingProduto(null);
-			setFormData({ nome: '', codigo: '', preco: 0, estoque: 0 });
+			setFormData({ nome: '', codigo: '', categoria_id: 0, unidade: '', foto: '' });
 			toast.success(editingProduto ? 'Produto atualizado com sucesso.' : 'Produto cadastrado com sucesso.');
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : 'Erro ao salvar');
@@ -100,13 +141,19 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
 
 	const handleEdit = (p: Produto) => {
 		setEditingProduto(p);
-		setFormData({ nome: p.nome, codigo: p.codigo, preco: p.preco, estoque: p.estoque });
+		setFormData({ nome: p.nome, codigo: p.codigo, categoria_id: p.categoria_id, unidade: p.unidade, foto: p.foto || '' });
 		setIsModalOpen(true);
 	};
 
 	const handleToggle = async (id: number) => {
 		const p = produtos.find((x) => x.id === id);
 		if (!p) return;
+		const ok = await confirm({
+			title: p.ativo ? 'Inativar produto?' : 'Ativar produto?',
+			description: `Deseja realmente ${p.ativo ? 'inativar' : 'ativar'} este produto?`,
+			confirmLabel: p.ativo ? 'Sim, inativar' : 'Sim, ativar',
+		});
+		if (!ok) return;
 		try {
 			const updated = await api.update<Record<string, unknown>>('produtos', id, { ativo: ativoToDb(!p.ativo) });
 			setProdutos((prev) => prev.map((x) => (x.id === id ? mapProduto(updated) : x)));
@@ -133,7 +180,7 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
 
 	const handleAdd = () => {
 		setEditingProduto(null);
-		setFormData({ nome: '', codigo: '', preco: 0, estoque: 0 });
+		setFormData({ nome: '', codigo: '', categoria_id: 0, unidade: '', foto: '' });
 		setIsModalOpen(true);
 	};
 
@@ -158,13 +205,13 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
 			<div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
 				<div className="flex-1 flex gap-2">
 					<div className="relative flex-1">
-						<MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+						<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
 						<input
 							type="text"
 							placeholder="Pesquisar produto"
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
-							className="w-full pl-10 pr-4 py-2.5 bg-white border-none shadow-sm rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+							className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
 						/>
 					</div>
 				</div>
@@ -179,13 +226,13 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
 					<table className="w-full text-left border-collapse">
 						<thead>
 							<tr className="bg-[#f5f5f5]">
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Cod</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-16">ID</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest w-20">Foto</th>
 								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nome</th>
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Código</th>
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-right">Preço</th>
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Estoque</th>
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
-								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">Ações</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Categoria</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-24">Unidade</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Status</th>
+								<th className="px-4 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center w-28">Ações</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-slate-100">
@@ -204,11 +251,19 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
 							) : (
 								paginatedProdutos.map((produto) => (
 									<tr key={produto.id} className="hover:bg-slate-50 transition-colors">
-										<td className="px-4 py-4 text-sm font-semibold text-slate-900">{produto.id}</td>
+										<td className="px-4 py-4 text-sm text-slate-500 text-center">{produto.id}</td>
+										<td className="px-4 py-4">
+											{produto.foto ? (
+												<img src={produto.foto} alt={produto.nome} className="w-10 h-10 rounded-lg object-cover" />
+											) : (
+												<div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+													<MaterialIcon name="inventory_2" size={18} className="text-slate-400" />
+												</div>
+											)}
+										</td>
 										<td className="px-4 py-4 text-sm font-bold text-slate-900">{produto.nome}</td>
-										<td className="px-4 py-4 text-sm text-slate-500">{produto.codigo || '—'}</td>
-										<td className="px-4 py-4 text-sm text-right">R$ {produto.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-										<td className="px-4 py-4 text-center text-sm">{produto.estoque}</td>
+										<td className="px-4 py-4 text-center text-sm">{produto.categoria_nome || String(produto.categoria_id) || '—'}</td>
+										<td className="px-4 py-4 text-center text-sm">{produto.unidade || '—'}</td>
 										<td className="px-4 py-4 text-center">
 											<span
 												className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold ${produto.ativo ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}
@@ -280,6 +335,15 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
 						className="mt-6 space-y-4"
 					>
 						<div>
+							<label className="block text-sm font-semibold text-slate-700 mb-1">Código</label>
+							<input
+								type="text"
+								value={formData.codigo || 'Automático'}
+								disabled
+								className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-md text-sm text-slate-500 cursor-not-allowed"
+							/>
+						</div>
+						<div>
 							<label className="block text-sm font-semibold text-slate-700 mb-1">Nome</label>
 							<input
 								type="text"
@@ -289,33 +353,64 @@ export const ProdutosPage: React.FC<ProdutosProps> = () => {
 								required
 							/>
 						</div>
-						<div>
-							<label className="block text-sm font-semibold text-slate-700 mb-1">Código</label>
-							<input
-								type="text"
-								value={formData.codigo}
-								onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
-								className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
-							/>
-						</div>
 						<div className="grid grid-cols-2 gap-4">
 							<div>
-								<label className="block text-sm font-semibold text-slate-700 mb-1">Preço</label>
+								<label className="block text-sm font-semibold text-slate-700 mb-1">Categoria</label>
+								<select
+									value={formData.categoria_id || ''}
+									onChange={(e) => setFormData({ ...formData, categoria_id: parseInt(e.target.value) || 0 })}
+									className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+								>
+									<option value="">Selecione...</option>
+									{categorias.map(c => (
+										<option key={c.id} value={c.id}>{c.nome}</option>
+									))}
+								</select>
+							</div>
+							<div>
+								<label className="block text-sm font-semibold text-slate-700 mb-1">Unidade</label>
 								<input
-									type="number"
-									step="0.01"
-									value={formData.preco}
-									onChange={(e) => setFormData({ ...formData, preco: parseFloat(e.target.value) || 0 })}
+									type="text"
+									value={formData.unidade}
+									onChange={(e) => setFormData({ ...formData, unidade: e.target.value })}
+									placeholder="Ex: kg, L, un"
 									className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
 								/>
 							</div>
-							<div>
-								<label className="block text-sm font-semibold text-slate-700 mb-1">Estoque</label>
+						</div>
+						<div>
+							<label className="block text-sm font-semibold text-slate-700 mb-1">Foto</label>
+							<div className="flex items-center gap-4">
+								{formData.foto ? (
+									<div className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-200">
+										<img src={formData.foto} alt="Produto" className="w-full h-full object-cover" />
+										<button
+											type="button"
+											onClick={() => setFormData({ ...formData, foto: '' })}
+											className="absolute top-0 right-0 bg-red-500 text-white w-5 h-5 flex items-center justify-center"
+										>
+											×
+										</button>
+									</div>
+								) : (
+									<div className="w-24 h-24 rounded-lg bg-slate-100 border-2 border-dashed border-slate-200 flex items-center justify-center">
+										<MaterialIcon name="inventory_2" size={32} className="text-slate-400" />
+									</div>
+								)}
 								<input
-									type="number"
-									value={formData.estoque}
-									onChange={(e) => setFormData({ ...formData, estoque: parseInt(e.target.value, 10) || 0 })}
-									className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-emerald-500 text-sm"
+									type="file"
+									accept="image/*"
+									onChange={(e) => {
+										const file = e.target.files?.[0];
+										if (file) {
+											const reader = new FileReader();
+											reader.onloadend = () => {
+												setFormData({ ...formData, foto: reader.result as string });
+											};
+											reader.readAsDataURL(file);
+										}
+									}}
+									className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
 								/>
 							</div>
 						</div>
