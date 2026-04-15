@@ -7,7 +7,7 @@ import { api } from '../lib/api';
 import { useAppFeedback } from '@/context/AppFeedbackContext';
 import { useNotificacoes } from '@/context/NotificacaoContext';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 interface Requisicao {
   id: number;
@@ -169,7 +169,7 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
       item.observacao || '-'
     ]);
     
-    (doc as jsPDF & { autoTable: Function }).autoTable({
+    autoTable(doc, {
       startY: 80,
       head: [['Qtd', 'Produto', 'Observação']],
       body: tableData,
@@ -183,7 +183,7 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
       }
     });
     
-    const finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 120;
+    const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 120;
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
