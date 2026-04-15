@@ -2,9 +2,12 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
 import { Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { api } from '../lib/api';
 import { useAppFeedback } from '@/context/AppFeedbackContext';
 import { useNotificacoes } from '@/context/NotificacaoContext';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 interface Requisicao {
   id: number;
@@ -50,6 +53,7 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isItensModalOpen, setIsItensModalOpen] = useState(false);
   const [selectedRequisicao, setSelectedRequisicao] = useState<Requisicao | null>(null);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const itemsPerPage = 5;
 
   const load = useCallback(async () => {
@@ -135,6 +139,90 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Erro ao fechar separação');
     }
+  };
+
+  const gerarPDFRequisicao = () => {
+    if (!selectedRequisicao) return;
+    
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('REQUISIÇÃO DE MATERIAIS', pageWidth / 2, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Requisição #: ${selectedRequisicao.id}`, 15, 35);
+    doc.text(`Data: ${selectedRequisicao.data ? new Date(selectedRequisicao.data).toLocaleDateString('pt-BR') : '-'}`, 15, 42);
+    doc.text(`Empresa: ${selectedRequisicao.empresa}`, 15, 49);
+    doc.text(`Departamento: ${selectedRequisicao.departamento}`, 15, 56);
+    doc.text(`Solicitante: ${selectedRequisicao.solicitante}`, 15, 63);
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ITENS REQUISITADOS', 15, 75);
+    
+    const tableData = itensRequisicao.map(item => [
+      item.quantidade.toString(),
+      item.produto_nome,
+      item.observacao || '-'
+    ]);
+    
+    (doc as jsPDF & { autoTable: Function }).autoTable({
+      startY: 80,
+      head: [['Qtd', 'Produto', 'Observação']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [34, 197, 94] },
+      styles: { fontSize: 9 },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 80 },
+        2: { cellWidth: 'auto' }
+      }
+    });
+    
+    const finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 120;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ASSINATURAS', 15, finalY + 15);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Responsável pelo Almoxarifado:', 15, finalY + 25);
+    doc.line(15, finalY + 40, 90, finalY + 40);
+    doc.text('Nome:', 15, finalY + 46);
+    doc.text('Data:', 70, finalY + 46);
+    
+    doc.text('Solicitante:', 110, finalY + 25);
+    doc.line(110, finalY + 40, 185, finalY + 40);
+    doc.text('Nome:', 110, finalY + 46);
+    doc.text('Data:', 165, finalY + 46);
+    
+    doc.save(`requisicao_${selectedRequisicao.id}.pdf`);
+  };
+
+  const handleConfirmarEntrega = async () => {
+    if (!selectedRequisicao) return;
+    try {
+      await api.update('requisicoes_departamento', selectedRequisicao.id, { status: 'entregue' });
+      setRequisicoes(prev => prev.map(r => 
+        r.id === selectedRequisicao.id ? { ...r, status: 'entregue' as const } : r
+      ));
+      
+      gerarPDFRequisicao();
+      
+      setIsConfirmDialogOpen(false);
+      setIsItensModalOpen(false);
+      setSelectedRequisicao(null);
+      toast.success('Entrega realizada com sucesso! PDF gerado.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao realizar entrega');
+    }
+  };
+
+  const handleAbrirConfirmacao = () => {
+    setIsConfirmDialogOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -229,7 +317,13 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
                     <td className="px-4 py-4 text-center">{getStatusBadge(req.status)}</td>
                     <td className="px-4 py-4 text-center">
                       <button 
-                        onClick={() => handleViewItens(req)} 
+                        onClick={() => {
+                          if (req.status === 'separado') {
+                            handleViewItens(req);
+                          } else {
+                            handleViewItens(req);
+                          }
+                        }} 
                         className={`px-3 py-1.5 text-white text-xs font-semibold rounded transition-colors ${
                           req.status === 'separado' 
                             ? 'bg-blue-600 hover:bg-blue-700' 
@@ -318,7 +412,14 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
           </div>
 
           <div className="mt-6 pt-4 border-t flex gap-3">
-            {todosSeparados ? (
+            {selectedRequisicao?.status === 'separado' ? (
+              <button 
+                onClick={handleAbrirConfirmacao}
+                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md transition-colors"
+              >
+                Confirmar Entrega
+              </button>
+            ) : todosSeparados ? (
               <button 
                 onClick={handleFecharSeparacao}
                 className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md transition-colors"
@@ -336,6 +437,36 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Entrega</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-slate-600">
+              Deseja realmente finalizar esta requisição #{selectedRequisicao?.id}?
+            </p>
+            <p className="text-sm text-slate-500 mt-2">
+              Um PDF será gerado com os dados da requisição para assinatura.
+            </p>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => setIsConfirmDialogOpen(false)}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleConfirmarEntrega}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md"
+            >
+              Confirmar e Gerar PDF
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
