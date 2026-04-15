@@ -41,7 +41,7 @@ interface AlmoxarifadosProps {
 export const AlmoxarifadosPage: React.FC<AlmoxarifadosProps> = () => {
 	const navigate = useNavigate();
 	const { toast, confirm } = useAppFeedback();
-	const { almoxarifadosPermitidos, isAdmin } = useEmpresa();
+	useEmpresa();
 	const [lista, setLista] = useState<Almoxarifado[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -58,14 +58,9 @@ export const AlmoxarifadosPage: React.FC<AlmoxarifadosProps> = () => {
 				api.list<Record<string, unknown>>('funcionarios'),
 			]);
 			
-			let filteredAlmox = almoxRaw.map(mapAlmox);
+			const allAlmox = almoxRaw.map(mapAlmox);
 			
-			if (!isAdmin) {
-				const almoxIdsPermitidos = almoxarifadosPermitidos.map(a => a.id);
-				filteredAlmox = filteredAlmox.filter(a => almoxIdsPermitidos.includes(a.id));
-			}
-			
-			setLista(filteredAlmox);
+			setLista(allAlmox);
 			setEmpresas(empresasRaw.map(e => ({ id: Number(e.id), nome: String(e.nome) })));
 			setResponsaveis(funcionariosRaw.map(f => ({ id: Number(f.id), nome: String(f.nome) })));
 		} catch (e) {
@@ -74,7 +69,7 @@ export const AlmoxarifadosPage: React.FC<AlmoxarifadosProps> = () => {
 		} finally {
 			setLoading(false);
 		}
-	}, [almoxarifadosPermitidos, isAdmin]);
+	}, []);
 
 	useEffect(() => {
 		void load();
