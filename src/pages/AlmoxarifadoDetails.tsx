@@ -88,12 +88,11 @@ export const AlmoxarifadoDetailsPage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const { toast, confirm } = useAppFeedback();
-	const { hasAccess, isAdmin } = useEmpresa();
+	useEmpresa();
 
 	const [almoxarifado, setAlmoxarifado] = useState<Almoxarifado | null>(null);
 	const [estoqueItens, setEstoqueItens] = useState<EstoqueItem[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [accessDenied, setAccessDenied] = useState(false);
 	const [empresas, setEmpresas] = useState<{ id: number; nome: string }[]>([]);
 	const [responsaveis, setResponsaveis] = useState<{ id: number; nome: string }[]>([]);
 	const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -114,7 +113,6 @@ export const AlmoxarifadoDetailsPage: React.FC = () => {
 	const loadData = useCallback(async () => {
 		if (!id) return;
 		setLoading(true);
-		setAccessDenied(false);
 		try {
 			const [almoxRaw, empresasRaw, funcionariosRaw, produtosRaw, estoqueRaw] = await Promise.all([
 				fetch(`${getApiBase()}/api/almoxarifados/${id}`),
@@ -128,12 +126,6 @@ export const AlmoxarifadoDetailsPage: React.FC = () => {
 
 			if (almoxData && !almoxData.error) {
 				const almox = mapAlmox(almoxData as Record<string, unknown>);
-				
-				if (!isAdmin && !hasAccess(almox.id, 'leitura')) {
-					setAccessDenied(true);
-					setLoading(false);
-					return;
-				}
 				
 				setAlmoxarifado(almox);
 				setFormData({
@@ -246,21 +238,6 @@ export const AlmoxarifadoDetailsPage: React.FC = () => {
 		return (
 			<div className="flex items-center justify-center h-64">
 				<div className="text-slate-500">Carregando...</div>
-			</div>
-		);
-	}
-
-	if (accessDenied) {
-		return (
-			<div className="flex flex-col items-center justify-center h-64 gap-4">
-				<MaterialIcon name="block" size={48} className="text-red-500" />
-				<div className="text-slate-500 text-center">
-					<p className="font-semibold text-lg">Acesso Negado</p>
-					<p className="text-sm mt-2">Você não tem permissão para visualizar este almoxarifado.</p>
-				</div>
-				<button onClick={() => navigate('/almoxarifados')} className="text-emerald-600 hover:underline">
-					Voltar para Almoxarifados
-				</button>
 			</div>
 		);
 	}
