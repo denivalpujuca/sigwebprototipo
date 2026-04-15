@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
 import { Search } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { api } from '../lib/api';
 import { useAppFeedback } from '@/context/AppFeedbackContext';
 import { useNotificacoes } from '@/context/NotificacaoContext';
@@ -442,15 +442,10 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Entrega</DialogTitle>
+            <DialogDescription>
+              Deseja realmente finalizar esta requisição #{selectedRequisicao?.id}? Um PDF será gerado com os dados para assinatura.
+            </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-slate-600">
-              Deseja realmente finalizar esta requisição #{selectedRequisicao?.id}?
-            </p>
-            <p className="text-sm text-slate-500 mt-2">
-              Um PDF será gerado com os dados da requisição para assinatura.
-            </p>
-          </div>
           <DialogFooter>
             <button
               onClick={() => setIsConfirmDialogOpen(false)}
