@@ -48,7 +48,6 @@ const menuItens: NavItem[] = [
       { id: 'fornecedores', label: 'Fornecedores', icon: TruckIcon },
       { id: 'solicitacao-compra', label: 'Solicitação de Compra', icon: ShoppingCart },
       { id: 'pedidos-compra', label: 'Pedidos de Compra', icon: ClipboardList },
-      { id: 'requisicao-departamento', label: 'Requisição de Produtos', icon: ClipboardList },
     ],
   },
   {
@@ -102,6 +101,7 @@ const menuItens: NavItem[] = [
       { id: 'categorias-produto', label: 'Categorias', icon: Package },
       { id: 'catalogo-produtos', label: 'Catálogo de Produtos', icon: Store },
       { id: 'requisicao-compra-produtos', label: 'Requisição de Compra', icon: ShoppingCart },
+      { id: 'requisicao-departamento', label: 'Requisição de Produtos', icon: ClipboardList },
     ],
   },
   {

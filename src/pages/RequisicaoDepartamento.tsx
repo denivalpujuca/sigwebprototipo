@@ -270,11 +270,11 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
         <MaterialIcon name="arrow_right" size={14} />
         <span className="hover:text-emerald-600 cursor-pointer">Suprimentos</span>
         <MaterialIcon name="arrow_right" size={14} />
-        <span className="text-slate-900">Requisição por Departamento</span>
+        <span className="text-slate-900">Requisição de Produtos</span>
       </nav>
 
       <div className="mb-6">
-        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Requisição por Departamento</h1>
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Requisição de Produtos</h1>
         <p className="text-slate-500 text-sm">Solicitação de produtos pelos departamentos da empresa.</p>
       </div>
 
