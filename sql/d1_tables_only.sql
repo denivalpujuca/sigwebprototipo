@@ -400,9 +400,11 @@ CREATE TABLE IF NOT EXISTS requisicoes_departamento (
   empresa TEXT NOT NULL,
   departamento TEXT NOT NULL,
   solicitante TEXT NOT NULL,
+  almoxarifado_id INTEGER,
   data DATE,
   itens INTEGER DEFAULT 0,
-  status TEXT DEFAULT 'pendente'
+  status TEXT DEFAULT 'pendente',
+  FOREIGN KEY (almoxarifado_id) REFERENCES almoxarifados(id)
 );
 
 -- Itens das Requisições de Departamento

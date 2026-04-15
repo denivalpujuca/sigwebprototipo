@@ -674,6 +674,7 @@ export const CatalogoProdutosPage: React.FC<NovoPedidoProps> = ({ onVoltar }) =>
                       departamento: 'Compras',
                       solicitante: clienteNome || '',
                       solicitante_id: usuarioId ? Number(usuarioId) : null,
+                      almoxarifado_id: almoxarifadoSelecionado,
                       data: new Date().toISOString().split('T')[0],
                       itens: itensCarrinho.length,
                       status: 'pendente',

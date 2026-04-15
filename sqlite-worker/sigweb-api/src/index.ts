@@ -316,6 +316,136 @@ app.put("/api/itens_requisicao/:id", async (c) => {
 	}
 });
 
+// GET /api/requisicoes_departamento - List all with responsavel info
+app.get("/api/requisicoes_departamento", async (c) => {
+	try {
+		const { results } = await c.env.DB.prepare(`
+			SELECT 
+				r.id, r.empresa, r.departamento, r.solicitante, r.solicitante_id,
+				r.almoxarifado_id, r.data, r.itens, r.status,
+				a.nome as almoxarifado_nome, f.nome as responsavel_nome
+			FROM requisicoes_departamento r
+			LEFT JOIN almoxarifados a ON r.almoxarifado_id = a.id
+			LEFT JOIN funcionarios f ON a.responsavel_id = f.id
+			ORDER BY r.id DESC
+		`).all();
+		return c.json(results);
+	} catch (err) {
+		console.error('Erro em GET requisicoes_departamento:', err);
+		return c.json({ error: String(err) }, 500);
+	}
+});
+
+// GET /api/requisicoes_departamento/:id - Get one with responsavel info
+app.get("/api/requisicoes_departamento/:id", async (c) => {
+	const id = c.req.param("id");
+	try {
+		const { results } = await c.env.DB.prepare(`
+			SELECT 
+				r.id, r.empresa, r.departamento, r.solicitante, r.solicitante_id,
+				r.almoxarifado_id, r.data, r.itens, r.status,
+				a.nome as almoxarifado_nome, f.nome as responsavel_nome
+			FROM requisicoes_departamento r
+			LEFT JOIN almoxarifados a ON r.almoxarifado_id = a.id
+			LEFT JOIN funcionarios f ON a.responsavel_id = f.id
+			WHERE r.id = ?
+		`).bind(id).all();
+		if (results.length === 0) {
+			return c.json({ error: "Não encontrado" }, 404);
+		}
+		return c.json(results[0]);
+	} catch (err) {
+		console.error('Erro em GET requisicoes_departamento/:id:', err);
+		return c.json({ error: String(err) }, 500);
+	}
+});
+
+// POST /api/requisicoes_departamento - Create with almoxarifado_id
+app.post("/api/requisicoes_departamento", async (c) => {
+	try {
+		let body: Record<string, unknown>;
+		try {
+			body = await c.req.json();
+		} catch {
+			throw new HTTPException(400, { message: "JSON inválido" });
+		}
+		
+		const { empresa, departamento, solicitante, almoxarifado_id } = body;
+		if (!empresa || !departamento || !solicitante) {
+			throw new HTTPException(400, { message: "empresa, departamento e solicitante são obrigatórios" });
+		}
+		
+		const meta = await c.env.DB.prepare(`
+			INSERT INTO requisicoes_departamento (empresa, departamento, solicitante, almoxarifado_id, data, status)
+			VALUES (?, ?, ?, ?, CURRENT_DATE, 'pendente')
+		`).bind(empresa, departamento, solicitante, almoxarifado_id || null).run();
+		
+		const row = await c.env.DB.prepare(`
+			SELECT 
+				r.id, r.empresa, r.departamento, r.solicitante, r.solicitante_id,
+				r.almoxarifado_id, r.data, r.itens, r.status,
+				a.nome as almoxarifado_nome, f.nome as responsavel_nome
+			FROM requisicoes_departamento r
+			LEFT JOIN almoxarifados a ON r.almoxarifado_id = a.id
+			LEFT JOIN funcionarios f ON a.responsavel_id = f.id
+			WHERE r.id = ?
+		`).bind(meta.meta.last_row_id).first();
+		
+		return c.json(row, 201);
+	} catch (err) {
+		console.error('Erro em POST requisicoes_departamento:', err);
+		return c.json({ error: String(err) }, 500);
+	}
+});
+
+// PUT /api/requisicoes_departamento/:id - Update with almoxarifado_id support
+app.put("/api/requisicoes_departamento/:id", async (c) => {
+	const id = c.req.param("id");
+	try {
+		let body: Record<string, unknown>;
+		try {
+			body = await c.req.json();
+		} catch {
+			throw new HTTPException(400, { message: "JSON inválido" });
+		}
+		
+		const { empresa, departamento, solicitante, almoxarifado_id, status } = body;
+		const updates: string[] = [];
+		const values: unknown[] = [];
+		
+		if (empresa !== undefined) { updates.push("empresa = ?"); values.push(empresa); }
+		if (departamento !== undefined) { updates.push("departamento = ?"); values.push(departamento); }
+		if (solicitante !== undefined) { updates.push("solicitante = ?"); values.push(solicitante); }
+		if (almoxarifado_id !== undefined) { updates.push("almoxarifado_id = ?"); values.push(almoxarifado_id); }
+		if (status !== undefined) { updates.push("status = ?"); values.push(status); }
+		
+		if (updates.length === 0) {
+			throw new HTTPException(400, { message: "Nenhum campo para atualizar" });
+		}
+		
+		updates.push("updated_at = CURRENT_TIMESTAMP");
+		values.push(id);
+		
+		await c.env.DB.prepare(`UPDATE requisicoes_departamento SET ${updates.join(", ")} WHERE id = ?`).bind(...values).run();
+		
+		const row = await c.env.DB.prepare(`
+			SELECT 
+				r.id, r.empresa, r.departamento, r.solicitante, r.solicitante_id,
+				r.almoxarifado_id, r.data, r.itens, r.status,
+				a.nome as almoxarifado_nome, f.nome as responsavel_nome
+			FROM requisicoes_departamento r
+			LEFT JOIN almoxarifados a ON r.almoxarifado_id = a.id
+			LEFT JOIN funcionarios f ON a.responsavel_id = f.id
+			WHERE r.id = ?
+		`).bind(id).first();
+		
+		return c.json(row);
+	} catch (err) {
+		console.error('Erro em PUT requisicoes_departamento/:id:', err);
+		return c.json({ error: String(err) }, 500);
+	}
+});
+
 // === NOTIFICACOES ROUTES ===
 
 app.get("/api/notificacoes/:usuarioId", async (c) => {

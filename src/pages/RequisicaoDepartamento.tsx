@@ -16,6 +16,8 @@ interface Requisicao {
   departamento: string;
   solicitante: string;
   solicitante_id: number | null;
+  almoxarifado_id: number | null;
+  responsavel_nome: string;
   data: string;
   itens: number;
   status: 'pendente' | 'separado' | 'aprovado' | 'rejeitado' | 'finalizado';
@@ -38,6 +40,8 @@ function mapRequisicao(r: Record<string, unknown>): Requisicao {
     departamento: String(r.departamento ?? ''),
     solicitante: String(r.solicitante ?? ''),
     solicitante_id: r.solicitante_id ? Number(r.solicitante_id) : null,
+    almoxarifado_id: r.almoxarifado_id ? Number(r.almoxarifado_id) : null,
+    responsavel_nome: String(r.responsavel_nome ?? ''),
     data: String(r.data ?? ''),
     itens: Number(r.itens ?? 0),
     status: (String(r.status ?? 'pendente') as Requisicao['status']),
@@ -58,10 +62,6 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isEntregaMode, setIsEntregaMode] = useState(false);
   const itemsPerPage = 5;
-
-  const usuarioLogado = useMemo(() => {
-    return localStorage.getItem('usuario_nome') || 'Responsável pelo Almoxarifado';
-  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -202,17 +202,16 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
     doc.text('ASSINATURAS', 15, finalY + 15);
     doc.setFont('helvetica', 'normal');
     
+    doc.text('Responsável pelo Almoxarifado', 52.5, finalY + 25, { align: 'center' });
+    doc.line(15, finalY + 30, 90, finalY + 30);
     doc.setFont('helvetica', 'bold');
-    doc.text(usuarioLogado, 52.5, finalY + 30, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.text('Responsável pelo Almoxarifado', 52.5, finalY + 36, { align: 'center' });
-    doc.line(15, finalY + 40, 90, finalY + 40);
+    doc.text(selectedRequisicao.responsavel_nome || '____________________', 52.5, finalY + 38, { align: 'center' });
     
-    doc.setFont('helvetica', 'bold');
-    doc.text(selectedRequisicao.solicitante, 147.5, finalY + 30, { align: 'center' });
     doc.setFont('helvetica', 'normal');
-    doc.text('Solicitante', 147.5, finalY + 36, { align: 'center' });
-    doc.line(110, finalY + 40, 185, finalY + 40);
+    doc.text('Solicitante', 147.5, finalY + 25, { align: 'center' });
+    doc.line(110, finalY + 30, 185, finalY + 30);
+    doc.setFont('helvetica', 'bold');
+    doc.text(selectedRequisicao.solicitante, 147.5, finalY + 38, { align: 'center' });
     
     doc.save(`requisicao_${selectedRequisicao.id}.pdf`);
   };
