@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { api } from '../lib/api';
 import { useAppFeedback } from '@/context/AppFeedbackContext';
 import { useNotificacoes } from '@/context/NotificacaoContext';
+import { useEmpresa } from '@/context/EmpresaContext';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -17,7 +18,7 @@ interface Requisicao {
   solicitante_id: number | null;
   data: string;
   itens: number;
-  status: 'pendente' | 'separado' | 'aprovado' | 'rejeitado' | 'entregue';
+  status: 'pendente' | 'separado' | 'aprovado' | 'rejeitado' | 'finalizado';
 }
 
 interface ItemRequisicao {
@@ -46,6 +47,7 @@ function mapRequisicao(r: Record<string, unknown>): Requisicao {
 export const RequisicaoDepartamentoPage: React.FC = () => {
   const { toast } = useAppFeedback();
   const { createNotification } = useNotificacoes();
+  useEmpresa();
   const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
   const [itensRequisicao, setItensRequisicao] = useState<ItemRequisicao[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,7 +56,12 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
   const [isItensModalOpen, setIsItensModalOpen] = useState(false);
   const [selectedRequisicao, setSelectedRequisicao] = useState<Requisicao | null>(null);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isEntregaMode, setIsEntregaMode] = useState(false);
   const itemsPerPage = 5;
+
+  const usuarioLogado = useMemo(() => {
+    return localStorage.getItem('usuario_nome') || 'Responsável pelo Almoxarifado';
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -99,7 +106,12 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
   const handleViewItens = async (req: Requisicao) => {
     setSelectedRequisicao(req);
     await loadItens(req.id);
-    setItensRequisicao(prev => prev.map(item => ({ ...item, separado: 0 })));
+    if (req.status === 'separado') {
+      setIsEntregaMode(true);
+    } else {
+      setItensRequisicao(prev => prev.map(item => ({ ...item, separado: 0 })));
+      setIsEntregaMode(false);
+    }
     setIsItensModalOpen(true);
   };
 
@@ -189,12 +201,12 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
     doc.setFont('helvetica', 'bold');
     doc.text('ASSINATURAS', 15, finalY + 15);
     doc.setFont('helvetica', 'normal');
-    doc.text('Responsável pelo Almoxarifado:', 15, finalY + 25);
+    doc.text(`Responsável pelo Almoxarifado: ${usuarioLogado}`, 15, finalY + 25);
     doc.line(15, finalY + 40, 90, finalY + 40);
     doc.text('Nome:', 15, finalY + 46);
     doc.text('Data:', 70, finalY + 46);
     
-    doc.text('Solicitante:', 110, finalY + 25);
+    doc.text(`Solicitante: ${selectedRequisicao.solicitante}`, 110, finalY + 25);
     doc.line(110, finalY + 40, 185, finalY + 40);
     doc.text('Nome:', 110, finalY + 46);
     doc.text('Data:', 165, finalY + 46);
@@ -205,15 +217,16 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
   const handleConfirmarEntrega = async () => {
     if (!selectedRequisicao) return;
     try {
-      await api.update('requisicoes_departamento', selectedRequisicao.id, { status: 'entregue' });
+      await api.update('requisicoes_departamento', selectedRequisicao.id, { status: 'finalizado' });
       setRequisicoes(prev => prev.map(r => 
-        r.id === selectedRequisicao.id ? { ...r, status: 'entregue' as const } : r
+        r.id === selectedRequisicao.id ? { ...r, status: 'finalizado' as const } : r
       ));
       
       gerarPDFRequisicao();
       
       setIsConfirmDialogOpen(false);
       setIsItensModalOpen(false);
+      setIsEntregaMode(false);
       setSelectedRequisicao(null);
       toast.success('Entrega realizada com sucesso! PDF gerado.');
     } catch (e) {
@@ -231,11 +244,18 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
       separado: 'bg-blue-100 text-blue-700',
       aprovado: 'bg-emerald-100 text-emerald-700',
       rejeitado: 'bg-red-100 text-red-700',
-      entregue: 'bg-purple-100 text-purple-700',
+      finalizado: 'bg-purple-100 text-purple-700',
+    };
+    const labels: Record<string, string> = {
+      pendente: 'Pendente',
+      separado: 'Separado',
+      aprovado: 'Aprovado',
+      rejeitado: 'Rejeitado',
+      finalizado: 'Finalizado',
     };
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${styles[status] || 'bg-slate-100 text-slate-600'}`}>
-        {status}
+        {labels[status] || status}
       </span>
     );
   };
@@ -269,7 +289,7 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
           <option value="separado">Separado</option>
           <option value="aprovado">Aprovado</option>
           <option value="rejeitado">Rejeitado</option>
-          <option value="entregue">Entregue</option>
+          <option value="finalizado">Finalizado</option>
         </select>
         <div className="flex-1 flex gap-2">
           <div className="relative flex-1">
@@ -316,22 +336,20 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
                     <td className="px-4 py-4 text-sm text-slate-500 text-center">{req.itens}</td>
                     <td className="px-4 py-4 text-center">{getStatusBadge(req.status)}</td>
                     <td className="px-4 py-4 text-center">
-                      <button 
-                        onClick={() => {
-                          if (req.status === 'separado') {
-                            handleViewItens(req);
-                          } else {
-                            handleViewItens(req);
-                          }
-                        }} 
-                        className={`px-3 py-1.5 text-white text-xs font-semibold rounded transition-colors ${
-                          req.status === 'separado' 
-                            ? 'bg-blue-600 hover:bg-blue-700' 
-                            : 'bg-emerald-600 hover:bg-emerald-700'
-                        }`}
-                      >
-                        {req.status === 'separado' ? 'Entregar' : 'Separar'}
-                      </button>
+                      {req.status === 'finalizado' ? (
+                        <span className="text-xs text-slate-400">-</span>
+                      ) : (
+                        <button 
+                          onClick={() => handleViewItens(req)} 
+                          className={`px-3 py-1.5 text-white text-xs font-semibold rounded transition-colors ${
+                            req.status === 'separado' 
+                              ? 'bg-blue-600 hover:bg-blue-700' 
+                              : 'bg-emerald-600 hover:bg-emerald-700'
+                          }`}
+                        >
+                          {req.status === 'separado' ? 'Entregar' : 'Separar'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -357,84 +375,123 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
         </div>
       </div>
 
-      <Sheet open={isItensModalOpen} onOpenChange={(open) => { if (!open) { setIsItensModalOpen(false); setSelectedRequisicao(null); } }}>
+      <Sheet open={isItensModalOpen} onOpenChange={(open) => { if (!open) { setIsItensModalOpen(false); setSelectedRequisicao(null); setIsEntregaMode(false); } }}>
         <SheetContent className="sm:max-w-[500px]">
           <SheetHeader>
-            <SheetTitle>Separação de Itens</SheetTitle>
+            <SheetTitle>{isEntregaMode ? 'Entrega de Materiais' : 'Separação de Itens'}</SheetTitle>
             <p className="text-sm text-slate-500 mt-1">
               Requisição #{selectedRequisicao?.id} • {selectedRequisicao?.solicitante}
             </p>
           </SheetHeader>
           
-          <div className="mt-4 bg-slate-100 rounded-lg px-4 py-3 flex justify-between items-center">
-            <span className="text-sm text-slate-600">
-              {itensSeparadosCount} de {itensRequisicao.length} itens separados
-            </span>
-            <span className={`text-sm font-bold ${itensSeparadosCount === itensRequisicao.length && itensRequisicao.length > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
-              {itensSeparadosCount === itensRequisicao.length && itensRequisicao.length > 0 ? '✓ Completo' : 'Pendente'}
-            </span>
-          </div>
+          {isEntregaMode ? (
+            <>
+              <div className="mt-4 bg-emerald-50 rounded-lg px-4 py-3 flex justify-between items-center">
+                <span className="text-sm text-emerald-700 font-medium">
+                  {itensSeparadosCount} itens separados para entrega
+                </span>
+                <span className="text-sm font-bold text-emerald-600">✓ Pronto</span>
+              </div>
 
-          <div className="mt-4 space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-            {itensRequisicao.length === 0 ? (
-              <p className="text-center text-slate-500 py-8">Nenhum item nesta requisição</p>
-            ) : (
-              itensRequisicao.map(item => (
-                <div
-                  key={item.id}
-                  className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-                    item.separado 
-                      ? 'bg-emerald-50 border-emerald-300' 
-                      : 'bg-white border-slate-200'
-                  }`}
+              <div className="mt-4 space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                {itensRequisicao.filter(item => item.separado === 1).length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">Nenhum item separado</p>
+                ) : (
+                  itensRequisicao.filter(item => item.separado === 1).map(item => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-emerald-50 border-emerald-300"
+                    >
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-900">
+                          <span className="text-emerald-600 mr-1">{item.quantidade}x</span>
+                          {item.produto_nome}
+                        </p>
+                        {item.observacao && (
+                          <p className="text-xs text-slate-500 mt-1">{item.observacao}</p>
+                        )}
+                      </div>
+                      <MaterialIcon name="check_circle" className="text-emerald-500" size={20} />
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="mt-6 pt-4 border-t flex gap-3">
+                <button 
+                  onClick={handleAbrirConfirmacao}
+                  className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md transition-colors"
                 >
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-900">
-                      <span className="text-slate-400 mr-1">{item.quantidade}x</span>
-                      {item.produto_nome}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleToggleSeparar(item)}
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
-                      item.separado ? 'bg-emerald-500' : 'bg-slate-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${
-                        item.separado ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
+                  Confirmar Entrega e Gerar PDF
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mt-4 bg-slate-100 rounded-lg px-4 py-3 flex justify-between items-center">
+                <span className="text-sm text-slate-600">
+                  {itensSeparadosCount} de {itensRequisicao.length} itens separados
+                </span>
+                <span className={`text-sm font-bold ${itensSeparadosCount === itensRequisicao.length && itensRequisicao.length > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                  {itensSeparadosCount === itensRequisicao.length && itensRequisicao.length > 0 ? '✓ Completo' : 'Pendente'}
+                </span>
+              </div>
 
-          <div className="mt-6 pt-4 border-t flex gap-3">
-            {selectedRequisicao?.status === 'separado' ? (
-              <button 
-                onClick={handleAbrirConfirmacao}
-                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md transition-colors"
-              >
-                Confirmar Entrega
-              </button>
-            ) : todosSeparados ? (
-              <button 
-                onClick={handleFecharSeparacao}
-                className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md transition-colors"
-              >
-                Fechar Separação
-              </button>
-            ) : (
-              <button 
-                onClick={() => { setIsItensModalOpen(false); setSelectedRequisicao(null); }}
-                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md"
-              >
-                Fechar
-              </button>
-            )}
-          </div>
+              <div className="mt-4 space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                {itensRequisicao.length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">Nenhum item nesta requisição</p>
+                ) : (
+                  itensRequisicao.map(item => (
+                    <div
+                      key={item.id}
+                      className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                        item.separado 
+                          ? 'bg-emerald-50 border-emerald-300' 
+                          : 'bg-white border-slate-200'
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-900">
+                          <span className="text-slate-400 mr-1">{item.quantidade}x</span>
+                          {item.produto_nome}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleToggleSeparar(item)}
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                          item.separado ? 'bg-emerald-500' : 'bg-slate-300'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${
+                            item.separado ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="mt-6 pt-4 border-t flex gap-3">
+                {todosSeparados ? (
+                  <button 
+                    onClick={handleFecharSeparacao}
+                    className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md transition-colors"
+                  >
+                    Fechar Separação
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => { setIsItensModalOpen(false); setSelectedRequisicao(null); }}
+                    className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md"
+                  >
+                    Fechar
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </SheetContent>
       </Sheet>
 
