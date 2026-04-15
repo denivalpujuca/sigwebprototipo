@@ -61,6 +61,7 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
   const [selectedRequisicao, setSelectedRequisicao] = useState<Requisicao | null>(null);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isEntregaMode, setIsEntregaMode] = useState(false);
+  const [isViewMode, setIsViewMode] = useState(false);
   const itemsPerPage = 5;
 
   const load = useCallback(async () => {
@@ -106,11 +107,16 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
   const handleViewItens = async (req: Requisicao) => {
     setSelectedRequisicao(req);
     await loadItens(req.id);
-    if (req.status === 'separado') {
+    if (req.status === 'finalizado') {
+      setIsViewMode(true);
+      setIsEntregaMode(false);
+    } else if (req.status === 'separado') {
       setIsEntregaMode(true);
+      setIsViewMode(false);
     } else {
       setItensRequisicao(prev => prev.map(item => ({ ...item, separado: 0 })));
       setIsEntregaMode(false);
+      setIsViewMode(false);
     }
     setIsItensModalOpen(true);
   };
@@ -339,7 +345,12 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
                     <td className="px-4 py-4 text-center">{getStatusBadge(req.status)}</td>
                     <td className="px-4 py-4 text-center">
                       {req.status === 'finalizado' ? (
-                        <span className="text-xs text-slate-400">-</span>
+                        <button 
+                          onClick={() => handleViewItens(req)} 
+                          className="px-3 py-1.5 bg-slate-500 hover:bg-slate-600 text-white text-xs font-semibold rounded transition-colors"
+                        >
+                          Visualizar
+                        </button>
                       ) : (
                         <button 
                           onClick={() => handleViewItens(req)} 
@@ -377,16 +388,58 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
         </div>
       </div>
 
-      <Sheet open={isItensModalOpen} onOpenChange={(open) => { if (!open) { setIsItensModalOpen(false); setSelectedRequisicao(null); setIsEntregaMode(false); } }}>
+      <Sheet open={isItensModalOpen} onOpenChange={(open) => { if (!open) { setIsItensModalOpen(false); setSelectedRequisicao(null); setIsEntregaMode(false); setIsViewMode(false); } }}>
         <SheetContent className="sm:max-w-[500px]">
           <SheetHeader>
-            <SheetTitle>{isEntregaMode ? 'Entrega de Materiais' : 'Separação de Itens'}</SheetTitle>
+            <SheetTitle>{isViewMode ? 'Requisição Finalizada' : isEntregaMode ? 'Entrega de Materiais' : 'Separação de Itens'}</SheetTitle>
             <p className="text-sm text-slate-500 mt-1">
               Requisição #{selectedRequisicao?.id} • {selectedRequisicao?.solicitante}
             </p>
           </SheetHeader>
           
-          {isEntregaMode ? (
+          {isViewMode ? (
+            <>
+              <div className="mt-4 bg-purple-50 rounded-lg px-4 py-3 flex justify-between items-center">
+                <span className="text-sm text-purple-700 font-medium">
+                  Requisição finalizada em {selectedRequisicao?.data}
+                </span>
+                <span className="text-sm font-bold text-purple-600">✓ Concluída</span>
+              </div>
+
+              <div className="mt-4 space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                {itensRequisicao.length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">Nenhum item nesta requisição</p>
+                ) : (
+                  itensRequisicao.map(item => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-white border-slate-200"
+                    >
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-900">
+                          <span className="text-emerald-600 mr-1">{item.quantidade}x</span>
+                          {item.produto_nome}
+                        </p>
+                        {item.observacao && (
+                          <p className="text-xs text-slate-500 mt-1">{item.observacao}</p>
+                        )}
+                      </div>
+                      <MaterialIcon name="check_circle" className="text-emerald-500" size={20} />
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="mt-6 pt-4 border-t">
+                <button 
+                  onClick={() => { setIsItensModalOpen(false); setSelectedRequisicao(null); setIsViewMode(false); }}
+                  className="w-full px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md"
+                >
+                  Fechar
+                </button>
+              </div>
+            </>
+          ) : isEntregaMode ? (
             <>
               <div className="mt-4 bg-emerald-50 rounded-lg px-4 py-3 flex justify-between items-center">
                 <span className="text-sm text-emerald-700 font-medium">
