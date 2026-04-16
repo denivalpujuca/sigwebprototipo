@@ -418,6 +418,7 @@ CREATE TABLE IF NOT EXISTS itens_requisicao_departamento (
   verificado INTEGER DEFAULT 0,
   observacao TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME,
   FOREIGN KEY (requisicao_id) REFERENCES requisicoes_departamento(id)
 );
 

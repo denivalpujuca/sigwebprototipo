@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Search, type LucideIcon, Building, ShoppingCart, Wallet, Truck, Users, Wrench, Trash2, Cloud, Computer, TrendingUp, LayoutDashboard, Package, FolderOpen, CalendarDays, Truck as TruckIcon, FileText, Award, CheckCircle, Settings, Users as UsersIcon, Store, ClipboardList, Car, UserCog, Shield } from 'lucide-react';
+import { Search, type LucideIcon, Building, ShoppingCart, Wallet, Truck, Users, Wrench, Trash2, Cloud, Computer, TrendingUp, LayoutDashboard, Package, FolderOpen, CalendarDays, Truck as TruckIcon, FileText, Award, CheckCircle, Settings, Users as UsersIcon, ClipboardList, Car, UserCog, Shield } from 'lucide-react';
 import { useEmpresa } from '@/context/EmpresaContext';
 
 interface NavItem {
@@ -100,7 +100,6 @@ const menuItens: NavItem[] = [
     items: [
       { id: 'produtos', label: 'Produtos', icon: Package },
       { id: 'categorias-produto', label: 'Categorias', icon: Package },
-      { id: 'catalogo-produtos', label: 'Catálogo de Produtos', icon: Store },
       { id: 'requisicao-departamento', label: 'Requisição de Produtos', icon: ClipboardList },
     ],
   },

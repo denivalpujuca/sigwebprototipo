@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { MaterialIcon } from '../components/Icon';
-import { Search } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Minus, Package, X, CheckCircle2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '../lib/api';
 import { useAppFeedback } from '@/context/AppFeedbackContext';
 import { useNotificacoes } from '@/context/NotificacaoContext';
@@ -34,6 +35,16 @@ interface ItemRequisicao {
   observacao: string | null;
 }
 
+interface Produto {
+  id: number;
+  nome: string;
+  descricao: string;
+  precoUnitario: number;
+  unidade: string;
+  quantidade_disponivel?: number;
+  ativo: boolean;
+}
+
 function mapRequisicao(r: Record<string, unknown>): Requisicao {
   return {
     id: Number(r.id),
@@ -49,10 +60,22 @@ function mapRequisicao(r: Record<string, unknown>): Requisicao {
   };
 }
 
+function mapProduto(r: Record<string, unknown>): Produto {
+  return {
+    id: Number(r.id),
+    nome: String(r.nome ?? ''),
+    descricao: String(r.descricao ?? ''),
+    precoUnitario: Number(r.preco ?? r.preco_unitario ?? r.precoUnitario ?? 0),
+    unidade: String(r.unidade ?? 'un'),
+    quantidade_disponivel: r.quantidade_disponivel ? Number(r.quantidade_disponivel) : undefined,
+    ativo: r.ativo === 1 || r.ativo === true,
+  };
+}
+
 export const RequisicaoDepartamentoPage: React.FC = () => {
   const { toast } = useAppFeedback();
   const { createNotification } = useNotificacoes();
-  useEmpresa();
+  const { almoxarifadosPermitidos, empresaSelecionada } = useEmpresa();
   const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
   const [itensRequisicao, setItensRequisicao] = useState<ItemRequisicao[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,6 +86,15 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isEntregaMode, setIsEntregaMode] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
+  
+  const [isNovaRequisicaoOpen, setIsNovaRequisicaoOpen] = useState(false);
+  const [almoxarifadoSelecionado, setAlmoxarifadoSelecionado] = useState<number | null>(null);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [produtosSearch, setProdutosSearch] = useState('');
+  const [carrinho, setCarrinho] = useState<Record<number, number>>({});
+  const [quantidades, setQuantidades] = useState<Record<number, number>>({});
+  const [loadingProdutos, setLoadingProdutos] = useState(false);
+  
   const itemsPerPage = 5;
 
   const load = useCallback(async () => {
@@ -83,9 +115,27 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
     }
   }, []);
 
+  const loadProdutos = useCallback(async (almoxId: number) => {
+    setLoadingProdutos(true);
+    try {
+      const raw = await api.getUrl<Record<string, unknown>>(`/api/almoxarifados/${almoxId}/produtos`);
+      setProdutos(Array.isArray(raw) ? raw.map(mapProduto) : []);
+    } catch (e) {
+      setProdutos([]);
+    } finally {
+      setLoadingProdutos(false);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (almoxarifadoSelecionado) {
+      void loadProdutos(almoxarifadoSelecionado);
+    }
+  }, [almoxarifadoSelecionado, loadProdutos]);
 
   const filteredRequisicoes = useMemo(() => {
     return requisicoes.filter(req => {
@@ -98,12 +148,22 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
     });
   }, [requisicoes, searchTerm, statusFilter]);
 
+  const filteredProdutos = useMemo(() => {
+    if (!produtosSearch) return produtos;
+    return produtos.filter(p => 
+      p.nome.toLowerCase().includes(produtosSearch.toLowerCase()) ||
+      p.descricao.toLowerCase().includes(produtosSearch.toLowerCase())
+    );
+  }, [produtos, produtosSearch]);
+
   const paginatedRequisicoes = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredRequisicoes.slice(start, start + itemsPerPage);
   }, [filteredRequisicoes, currentPage]);
 
   const totalPages = Math.ceil(filteredRequisicoes.length / itemsPerPage);
+
+  const totalItensCarrinho = Object.values(carrinho).reduce((sum, qtd) => sum + qtd, 0);
 
   const handleViewItens = async (req: Requisicao) => {
     setSelectedRequisicao(req);
@@ -247,6 +307,72 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
     setIsConfirmDialogOpen(true);
   };
 
+  const handleSelecionarAlmoxarifado = (id: string) => {
+    setAlmoxarifadoSelecionado(Number(id));
+    setCarrinho({});
+    setQuantidades({});
+    setProdutosSearch('');
+  };
+
+  const adicionarCarrinho = (id: number, qtd: number = 1) => {
+    setCarrinho(prev => ({ ...prev, [id]: (prev[id] || 0) + qtd }));
+    setQuantidades(prev => ({ ...prev, [id]: 0 }));
+  };
+
+  const atualizarQuantidade = (id: number, qtd: number) => {
+    setQuantidades(prev => ({ ...prev, [id]: Math.max(0, qtd) }));
+  };
+
+  const criarRequisicao = async () => {
+    if (!almoxarifadoSelecionado || Object.keys(carrinho).length === 0) return;
+    
+    try {
+      const usuarioId = localStorage.getItem('usuario_id');
+      const usuarioNome = localStorage.getItem('usuario_nome');
+      
+      const itensCarrinho = Object.entries(carrinho)
+        .map(([id, quantidade]) => ({
+          produto: produtos.find(p => p.id === Number(id)),
+          quantidade,
+        }))
+        .filter(item => item.produto && item.quantidade > 0);
+
+      const payload = {
+        empresa: empresaSelecionada?.nome || '',
+        departamento: 'Compras',
+        solicitante: usuarioNome || '',
+        solicitante_id: usuarioId ? Number(usuarioId) : null,
+        almoxarifado_id: almoxarifadoSelecionado,
+        data: new Date().toISOString().split('T')[0],
+        itens: itensCarrinho.length,
+        status: 'pendente',
+      };
+
+      const requisicao = await api.create<{ id: number }>('requisicoes_departamento', payload);
+      
+      for (const item of itensCarrinho) {
+        if (item.produto) {
+          await api.create('itens_requisicao_departamento', {
+            requisicao_id: requisicao.id,
+            produto_nome: item.produto.nome,
+            quantidade: item.quantidade,
+            unidade: item.produto.unidade,
+          });
+        }
+      }
+      
+      toast.success('Requisição criada com sucesso!');
+      setIsNovaRequisicaoOpen(false);
+      setAlmoxarifadoSelecionado(null);
+      setCarrinho({});
+      setQuantidades({});
+      setProdutos([]);
+      void load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao criar requisição');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       pendente: 'bg-yellow-100 text-yellow-700',
@@ -282,9 +408,18 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
         <span className="text-slate-900">Requisição de Produtos</span>
       </nav>
 
-      <div className="mb-6">
-        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Requisição de Produtos</h1>
-        <p className="text-slate-500 text-sm">Solicitação de produtos pelos departamentos da empresa.</p>
+      <div className="mb-6 flex items-end justify-between">
+        <div>
+          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2" style={{ letterSpacing: '-0.02em' }}>Requisição de Produtos</h1>
+          <p className="text-slate-500 text-sm">Solicitação de produtos pelos departamentos da empresa.</p>
+        </div>
+        <button
+          onClick={() => setIsNovaRequisicaoOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors"
+        >
+          <Plus size={18} />
+          Nova Requisição
+        </button>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-stretch md:items-center">
@@ -389,6 +524,145 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
         </div>
       </div>
 
+      <Sheet open={isNovaRequisicaoOpen} onOpenChange={(open) => { if (!open) { setIsNovaRequisicaoOpen(false); setAlmoxarifadoSelecionado(null); setCarrinho({}); setProdutos([]); } }}>
+        <SheetContent className="sm:max-w-4xl">
+          <SheetHeader>
+            <SheetTitle>Nova Requisição de Produtos</SheetTitle>
+          </SheetHeader>
+          
+          <div className="mt-4 space-y-4">
+            {!almoxarifadoSelecionado ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Package size={48} className="text-slate-300 mb-4" />
+                <p className="text-slate-500 mb-4 text-center">Selecione um almoxarifado para ver os produtos</p>
+                <Select onValueChange={handleSelecionarAlmoxarifado}>
+                  <SelectTrigger className="w-72">
+                    <SelectValue placeholder="Selecione o almoxarifado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {almoxarifadosPermitidos.map(alm => (
+                      <SelectItem key={alm.id} value={String(alm.id)}>
+                        {alm.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <>
+                <div className="bg-emerald-50 rounded-lg p-3 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-emerald-600 font-medium">Almoxarifado</span>
+                    <p className="text-sm font-semibold text-emerald-800">
+                      {almoxarifadosPermitidos.find(a => a.id === almoxarifadoSelecionado)?.nome}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setAlmoxarifadoSelecionado(null); setCarrinho({}); setProdutos([]); }}
+                    className="text-xs text-emerald-600 hover:text-emerald-800 font-medium"
+                  >
+                    Alterar
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Buscar produtos..."
+                    value={produtosSearch}
+                    onChange={(e) => setProdutosSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                {loadingProdutos ? (
+                  <div className="text-center py-8 text-slate-500">Carregando produtos...</div>
+                ) : filteredProdutos.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">Nenhum produto encontrado</div>
+                ) : (
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                    {filteredProdutos.map(produto => (
+                      <div key={produto.id} className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg">
+                        <div className="bg-slate-100 px-3 py-1.5 rounded-lg text-center min-w-[70px]">
+                          <span className="text-sm font-bold">{produto.quantidade_disponivel ?? '-'}</span>
+                          <span className="text-xs block text-slate-500">{produto.unidade}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">{produto.nome}</p>
+                          <p className="text-xs text-slate-500 truncate">{produto.descricao}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => atualizarQuantidade(produto.id, (quantidades[produto.id] || 0) - 1)}
+                            className="p-1.5 hover:bg-slate-100 rounded"
+                            disabled={!quantidades[produto.id]}
+                          >
+                            <Minus size={16} />
+                          </button>
+                          <input
+                            type="number"
+                            min="0"
+                            max={produto.quantidade_disponivel}
+                            value={quantidades[produto.id] || 0}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              const max = Number(produto.quantidade_disponivel) || val;
+                              atualizarQuantidade(produto.id, Math.min(val, max));
+                            }}
+                            className="w-14 text-center text-sm border border-slate-200 rounded px-2 py-1"
+                          />
+                          <button
+                            onClick={() => {
+                              const max = Number(produto.quantidade_disponivel) || 0;
+                              const atual = Number(quantidades[produto.id]) || 0;
+                              if (max === 0 || atual < max) {
+                                atualizarQuantidade(produto.id, atual + 1);
+                              }
+                            }}
+                            className="p-1.5 hover:bg-slate-100 rounded"
+                          >
+                            <Plus size={16} />
+                          </button>
+                          <button
+                            onClick={() => adicionarCarrinho(produto.id, quantidades[produto.id] || 1)}
+                            disabled={!quantidades[produto.id]}
+                            className={`p-2 rounded-lg text-sm font-medium transition-colors ${
+                              (quantidades[produto.id] || 0) > 0
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                            }`}
+                          >
+                            {(quantidades[produto.id] || 0) > 0 ? <CheckCircle2 size={18} /> : <Plus size={18} />}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {totalItensCarrinho > 0 && (
+                  <div className="sticky bottom-0 bg-white border-t border-slate-200 pt-4 mt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-slate-600">
+                        {totalItensCarrinho} item(s) no carrinho
+                      </span>
+                    </div>
+                    <button
+                      onClick={criarRequisicao}
+                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      <ShoppingCart size={18} />
+                      Criar Requisição
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
       <Sheet open={isItensModalOpen} onOpenChange={(open) => { if (!open) { setIsItensModalOpen(false); setSelectedRequisicao(null); setIsEntregaMode(false); setIsViewMode(false); } }}>
         <SheetContent className="sm:max-w-[500px]">
           <SheetHeader>
@@ -461,14 +735,17 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
                       key={item.id}
                       className="flex items-center justify-between p-3 rounded-lg border bg-emerald-50 border-emerald-300"
                     >
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-900">
-                          <span className="text-emerald-600 mr-1">{item.quantidade}x</span>
-                          {item.produto_nome}
-                        </p>
-                        {item.observacao && (
-                          <p className="text-xs text-slate-500 mt-1">{item.observacao}</p>
-                        )}
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-center min-w-[80px]">
+                          <span className="text-lg font-bold">{item.quantidade}</span>
+                          <span className="text-xs block">{item.unidade || 'un'}</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-900">{item.produto_nome}</p>
+                          {item.observacao && (
+                            <p className="text-xs text-slate-500 mt-1">{item.observacao}</p>
+                          )}
+                        </div>
                       </div>
                       <MaterialIcon name="check_circle" className="text-emerald-500" size={20} />
                     </div>
