@@ -509,11 +509,21 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
                           : 'bg-white border-slate-200'
                       }`}
                     >
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-900">
-                          <span className="text-slate-400 mr-1">{item.quantidade}x</span>
-                          {item.produto_nome}
-                        </p>
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className={`px-3 py-1.5 rounded-lg text-center min-w-[80px] ${
+                          item.separado 
+                            ? 'bg-emerald-500 text-white' 
+                            : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          <span className="text-lg font-bold">{item.quantidade}</span>
+                          <span className="text-xs block">{item.unidade || 'un'}</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-900">{item.produto_nome}</p>
+                          {item.observacao && (
+                            <p className="text-xs text-slate-500 mt-1">{item.observacao}</p>
+                          )}
+                        </div>
                       </div>
                       <button
                         onClick={() => handleToggleSeparar(item)}
