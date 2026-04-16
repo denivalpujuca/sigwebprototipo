@@ -509,12 +509,18 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
                           : 'bg-white border-slate-200'
                       }`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={item.separado === 1}
-                        onChange={() => handleToggleSeparar(item)}
-                        className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                      />
+                      <button
+                        onClick={() => handleToggleSeparar(item)}
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                          item.separado ? 'bg-emerald-500' : 'bg-slate-300'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${
+                            item.separado ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
                       <div className={`px-3 py-1.5 rounded-lg text-center min-w-[80px] ${
                         item.separado 
                           ? 'bg-emerald-500 text-white' 
