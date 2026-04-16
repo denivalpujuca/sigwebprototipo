@@ -503,40 +503,32 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
                   itensRequisicao.map(item => (
                     <div
                       key={item.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                      className={`flex items-center gap-4 p-3 rounded-lg border transition-all ${
                         item.separado 
                           ? 'bg-emerald-50 border-emerald-300' 
                           : 'bg-white border-slate-200'
                       }`}
                     >
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className={`px-3 py-1.5 rounded-lg text-center min-w-[80px] ${
-                          item.separado 
-                            ? 'bg-emerald-500 text-white' 
-                            : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          <span className="text-lg font-bold">{item.quantidade}</span>
-                          <span className="text-xs block">{item.unidade || 'un'}</span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-slate-900">{item.produto_nome}</p>
-                          {item.observacao && (
-                            <p className="text-xs text-slate-500 mt-1">{item.observacao}</p>
-                          )}
-                        </div>
+                      <input
+                        type="checkbox"
+                        checked={item.separado === 1}
+                        onChange={() => handleToggleSeparar(item)}
+                        className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                      />
+                      <div className={`px-3 py-1.5 rounded-lg text-center min-w-[80px] ${
+                        item.separado 
+                          ? 'bg-emerald-500 text-white' 
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        <span className="text-lg font-bold">{item.quantidade}</span>
+                        <span className="text-xs block">{item.unidade || 'un'}</span>
                       </div>
-                      <button
-                        onClick={() => handleToggleSeparar(item)}
-                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
-                          item.separado ? 'bg-emerald-500' : 'bg-slate-300'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${
-                            item.separado ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-900">{item.produto_nome}</p>
+                        {item.observacao && (
+                          <p className="text-xs text-slate-500 mt-1">{item.observacao}</p>
+                        )}
+                      </div>
                     </div>
                   ))
                 )}
