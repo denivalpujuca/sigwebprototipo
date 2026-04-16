@@ -28,6 +28,7 @@ interface ItemRequisicao {
   requisicao_id: number;
   produto_nome: string;
   quantidade: number;
+  unidade: string;
   separado: number;
   verificado: number;
   observacao: string | null;
@@ -415,14 +416,17 @@ export const RequisicaoDepartamentoPage: React.FC = () => {
                       key={item.id}
                       className="flex items-center justify-between p-3 rounded-lg border bg-white border-slate-200"
                     >
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-900">
-                          <span className="text-emerald-600 mr-1">{item.quantidade}x</span>
-                          {item.produto_nome}
-                        </p>
-                        {item.observacao && (
-                          <p className="text-xs text-slate-500 mt-1">{item.observacao}</p>
-                        )}
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg text-center min-w-[80px]">
+                          <span className="text-lg font-bold">{item.quantidade}</span>
+                          <span className="text-xs block">{item.unidade || 'un'}</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-900">{item.produto_nome}</p>
+                          {item.observacao && (
+                            <p className="text-xs text-slate-500 mt-1">{item.observacao}</p>
+                          )}
+                        </div>
                       </div>
                       <MaterialIcon name="check_circle" className="text-emerald-500" size={20} />
                     </div>

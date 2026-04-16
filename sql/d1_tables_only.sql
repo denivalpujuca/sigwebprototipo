@@ -413,6 +413,7 @@ CREATE TABLE IF NOT EXISTS itens_requisicao_departamento (
   requisicao_id INTEGER NOT NULL,
   produto_nome TEXT NOT NULL,
   quantidade INTEGER NOT NULL,
+  unidade TEXT DEFAULT 'un',
   separado INTEGER DEFAULT 0,
   verificado INTEGER DEFAULT 0,
   observacao TEXT,
